@@ -1,0 +1,31 @@
+<html>
+    <!--引入jQuery包用于使用ajax-->
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <h1>请输入你的姓名和年龄</h1>
+    <!--创建两个input输入框，定义id分别为name,age-->
+    <input type="text" id="name" name="name" placeholder="姓名">
+    <br>
+    <input type="text" id="age" name="age" placeholder="年龄">
+    <br>
+    <!--创建button按钮，点击则激发submit()事件-->
+    <button onclick="submit();">提交</button>
+    <script>
+        /*在这里编写submit()事件*/
+        function submit() {
+            $.ajax({
+                url: "api/v1", /*数据提交到submit处*/
+                type: "GET",  /*采用POST方法提交*/
+                data: { "name": $("#name").val(),"age":$("#age").val()},  /*提交的数据（json格式），从输入框中获取*/
+                /*result为后端函数返回的json*/
+                success: function (result) {
+                    if (result.message == "success!") {
+                        alert(result.message+"你的名字是"+result.name+",你的年龄是"+result.age)
+                    }
+                    else {
+                        alert(result.message)
+                    }
+                }
+            });
+        }
+    </script>
+</html>
