@@ -1,7 +1,7 @@
 import json
 import os
-import time
 from multiprocessing import Pipe
+import glob
 
 from flask import request
 from hcpdiff.utils.utils import load_config
@@ -9,7 +9,7 @@ from omegaconf import OmegaConf
 
 from constant import INFER_CFG_ROOT, HF_MODELS, PRETRAINED_MODELS_ROOT, CKPT_ROOT
 from secession.gen_sec import GenerateSecession
-from utils import proc_model_path, list_files
+from utils import proc_model_path, create_sn
 from context import app
 
 API_PREFIX = '/api/v1/generate'
@@ -35,9 +35,9 @@ def get_generate_info():
         sn = 'text2img'
 
     cfg = load_config(os.path.join(INFER_CFG_ROOT, sn+'.yaml'))
-    pretrained_model_local = list_files(PRETRAINED_MODELS_ROOT)
+    pretrained_model_local = glob.glob(PRETRAINED_MODELS_ROOT+'*')
     pretrained_model_list = proc_model_path(pretrained_model_local+HF_MODELS)
-    ckpt_list = list_files(CKPT_ROOT)
+    ckpt_list = glob.glob(os.path.join(CKPT_ROOT, '*.ckpt'))
     cfg_file_list = [{'label':path[:-5], 'value':''} for path in os.listdir(INFER_CFG_ROOT)]
 
     progress = vis_data.get_data('progress') or 100
@@ -60,8 +60,8 @@ def get_generate_info():
 
 @app.route(API_PREFIX+"/", methods=["POST"])
 def generate_images():
-    cfg = json.loads(request.json)
-    sn = time.time_ns()//(10**6)
+    cfg = json.loads(request.json)['info']
+    sn = create_sn()
 
     if vis_data.interface is None:
         vis_data.pipe = Pipe()
