@@ -1,8 +1,9 @@
-from context import app
+from hcp_server.context import app
 from flask import request
 import glob
 from constant import PROMPT_DS_ROOT
 import os
+from utils import wrap_response
 
 API_PREFIX = '/api/v1/dataset'
 
@@ -13,9 +14,9 @@ def get_prompt_ds_info():
     prompt_dataset = glob.glob(os.path.join(PROMPT_DS_ROOT, '*.parquet'))
     prompt_dataset = [{'label':os.path.basename(path), 'value':path} for path in prompt_dataset]
 
-    return {
+    return wrap_response({
         'prompt_file': prompt_dataset,
         'progress': 100,
         'status':4,
         'sn':sn,
-    }
+    })

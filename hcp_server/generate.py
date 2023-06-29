@@ -1,6 +1,6 @@
-import json
 import os
 from multiprocessing import Pipe
+from multiprocessing.connection import Connection
 import glob
 
 from flask import request
@@ -9,14 +9,15 @@ from omegaconf import OmegaConf
 
 from constant import INFER_CFG_ROOT, HF_MODELS, PRETRAINED_MODELS_ROOT, CKPT_ROOT
 from secession.gen_sec import GenerateSecession
-from utils import proc_model_path, create_sn
-from context import app
+from utils import proc_model_path, create_sn, wrap_response
+from hcp_server.context import app
+from loguru import logger
 
 API_PREFIX = '/api/v1/generate'
 
 class VisData:
     def __init__(self):
-        self.pipe: Pipe = None
+        self.pipe: Connection = None
         self.interface = None
 
     def get_data(self, msg):
@@ -38,11 +39,11 @@ def get_generate_info():
     pretrained_model_local = glob.glob(PRETRAINED_MODELS_ROOT+'*')
     pretrained_model_list = proc_model_path(pretrained_model_local+HF_MODELS)
     ckpt_list = glob.glob(os.path.join(CKPT_ROOT, '*.ckpt'))
-    cfg_file_list = [{'label':path[:-5], 'value':''} for path in os.listdir(INFER_CFG_ROOT)]
+    cfg_file_list = [{'label':path[:-5], 'value': path[:-5]} for path in os.listdir(INFER_CFG_ROOT)]
 
     progress = vis_data.get_data('progress') or 100
 
-    return {
+    return wrap_response({
         'info':OmegaConf.to_container(cfg),
         'pretrained_mode':pretrained_model_list,
         'pretrained_model_name_or_path':pretrained_model_list,
@@ -56,25 +57,29 @@ def get_generate_info():
         'images':[],
         'status':4,
         'sn':sn,
-    }
+    })
 
 @app.route(API_PREFIX+"/", methods=["POST"])
 def generate_images():
-    cfg = json.loads(request.json)['info']
+    cfg = request.json['info']
+    cfg = OmegaConf.create(cfg)
     sn = create_sn()
 
+    logger.info('sn: '+str(sn))
+
     if vis_data.interface is None:
-        vis_data.pipe = Pipe()
-        cfg = load_config(sn)
-        vis_data.interface = GenerateSecession(vis_data.pipe, cfg)
+        vis_data.pipe, child_pipe = Pipe()
+        #cfg = load_config(sn+'.yaml')
+        vis_data.interface = GenerateSecession(child_pipe, cfg)
+        vis_data.interface.start()
 
     vis_data.pipe.send({'cmd':'generate', 'cfg':cfg})
-    return {'sn':sn}
+    return wrap_response({'sn':sn})
 
 @app.route(API_PREFIX+"/progress", methods=["DELETE"])
 def progress_finish():
     sn = request.args.get("sn", default='')
-    return {'sn':sn}
+    return wrap_response({'sn':sn})
 
 @app.route(API_PREFIX+"/progress", methods=["GET"])
 def progress():
@@ -84,9 +89,9 @@ def progress():
     if len(images) == 0 and progress == 100:
         progress = 99
 
-    return {
+    return wrap_response({
         'sn':sn,
         'progress':progress,
         'images':images,
         'status':2 if progress == 100 else 1
-    }
+    })

@@ -1,8 +1,8 @@
 import os
 import glob
 
-HCP_ROOT = ''
-SERVER_ROOT = 'web/hcpdiff_back'
+HCP_ROOT = os.getcwd()
+SERVER_ROOT = os.path.join(HCP_ROOT, 'web/hcpdiff-server')
 
 TMP_ROOT = os.path.join(HCP_ROOT, 'tmp/')
 os.makedirs(TMP_ROOT, exist_ok=True)
@@ -15,6 +15,7 @@ PRETRAINED_MODELS_ROOT = os.path.join(HCP_ROOT, 'sd_models/')
 EMB_ROOT = os.path.join(HCP_ROOT, 'embs/')
 PROMPT_TEMPLATE_ROOT = os.path.join(HCP_ROOT, 'prompt_tuning_template/')
 CKPT_ROOT = os.path.join(HCP_ROOT, 'ckpts/')
+IMG_SAVE_ROOT = os.path.join(HCP_ROOT, 'output/')
 
 os.makedirs(PRETRAINED_MODELS_ROOT, exist_ok=True)
 os.makedirs(EMB_ROOT, exist_ok=True)

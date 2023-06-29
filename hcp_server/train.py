@@ -1,13 +1,12 @@
-from context import app
+from hcp_server.context import app
 from flask import request
 import os
 from constant import get_train_cfgs, TRAIN_CFG_ROOT, HF_MODELS, PRETRAINED_MODELS_ROOT, PROMPT_TEMPLATE_ROOT, EMB_ROOT, TMP_ROOT
-from utils import proc_model_path, create_sn
+from utils import proc_model_path, create_sn, wrap_response
 from hcpdiff.utils.utils import load_config
 from omegaconf import OmegaConf
 import glob
 from secession import TrainSecession
-import json
 
 API_PREFIX = '/api/v1/train'
 
@@ -17,7 +16,7 @@ ts = TrainSecession()
 def get_train_info():
     sn = request.args.get("sn", default='text2img')
     if not os.path.exists(os.path.join(TRAIN_CFG_ROOT, sn+'.yaml')):
-        sn = 'fine-tuning'
+        sn = 'examples/fine-tuning'
 
     cfg = load_config(os.path.join(TRAIN_CFG_ROOT, sn+'.yaml'))
     pretrained_model_local = glob.glob(PRETRAINED_MODELS_ROOT+'*')
@@ -33,22 +32,22 @@ def get_train_info():
     emb_list = glob.glob(os.path.join(EMB_ROOT, '*.pt'))
     emb_list = [{'label':os.path.basename(path)[:-3], 'value':os.path.basename(path)[:-3]} for path in emb_list]
 
-    return {
+    return wrap_response({
         'info':OmegaConf.to_container(cfg),
         'pretrained_mode':pretrained_model_list,
         'pretrained_model_name_or_path':pretrained_model_list,
         'prompt_template':prompt_template_list,
         'tokenizer_pt_train_name':emb_list,
         'server_yaml_file':cfg_file_list,
-        'is_pending':ts.progress<100,
-        'progress':ts.progress,
+        'is_pending':ts.progress_rate<100,
+        'progress':ts.progress_rate,
         'status':5,
         'sn':sn,
-    }
+    })
 
 @app.route(API_PREFIX+"/", methods=["POST"])
 def train_model():
-    body = json.loads(request.json)
+    body = request.json
     cfg = body['info']
     train_mode = body['train_mode']
 
@@ -64,21 +63,21 @@ def train_model():
     elif train_mode==2:
         ts.start(f'torchrun --nproc_per_node 1 -m hcpdiff.train_colo --cfg "{train_file}"')
 
-    return {'sn':sn}
+    return wrap_response({'sn':sn})
 
 @app.route(API_PREFIX+"/progress", methods=["DELETE"])
-def progress_finish():
+def train_progress_finish():
     sn = request.args.get("sn", default='')
     ts.stop()
-    return {'sn':sn}
+    return wrap_response({'sn':sn})
 
 @app.route(API_PREFIX+"/progress", methods=["GET"])
-def progress():
+def train_progress():
     sn = request.args.get("sn", default='')
-    progress = ts.progress('progress')
+    progress = ts.progress_rate
 
-    return {
+    return wrap_response({
         'sn':sn,
         'progress':progress,
         'status':2 if progress == 100 else 1
-    }
+    })

@@ -21,6 +21,13 @@ class TrainSecession:
         else:
             return self.steps
 
+    @property
+    def progress_rate(self):
+        if self.p is None:
+            return 0
+        else:
+            return self.steps[0]/self.steps[1]
+
     def state_monitor(self):
         while self.p.poll() is None:
             line = self.p.stdout.readline().strip()

@@ -12,3 +12,6 @@ def decode_data(byte_data: bytes):
         return byte_data.decode('UTF-8')
     except UnicodeDecodeError:
         return byte_data.decode('GB18030')
+
+def wrap_response(data):
+    return {'code':0, 'status':'success', 'data':data}
