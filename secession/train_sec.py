@@ -5,7 +5,7 @@ from utils import decode_data
 
 class TrainSecession:
     def __init__(self):
-        self.steps = [0, 1]
+        self.steps = [1, 1]
         self.p = None
 
     def analysis_prog(self, line):
@@ -17,7 +17,7 @@ class TrainSecession:
     @property
     def progress(self):
         if self.p is None:
-            return [0, 1]
+            return [1, 1]
         else:
             return self.steps
 
