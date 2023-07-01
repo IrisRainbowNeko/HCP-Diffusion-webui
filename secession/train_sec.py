@@ -24,7 +24,7 @@ class TrainSecession:
     @property
     def progress_rate(self):
         if self.p is None:
-            return 0
+            return 100
         else:
             return self.steps[0]/self.steps[1]
 
