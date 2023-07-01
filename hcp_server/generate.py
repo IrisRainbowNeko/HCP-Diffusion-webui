@@ -77,12 +77,12 @@ def generate_images():
     return wrap_response({'sn':sn})
 
 @app.route(API_PREFIX+"/progress", methods=["DELETE"])
-def progress_finish():
+def gen_interrupt():
     sn = request.args.get("sn", default='')
     return wrap_response({'sn':sn})
 
 @app.route(API_PREFIX+"/progress", methods=["GET"])
-def progress():
+def gen_progress():
     sn = request.args.get("sn", default='')
     images = vis_data.get_data('images')
     progress = vis_data.get_data('progress')

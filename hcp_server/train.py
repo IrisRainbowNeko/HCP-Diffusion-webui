@@ -66,7 +66,7 @@ def train_model():
     return wrap_response({'sn':sn})
 
 @app.route(API_PREFIX+"/progress", methods=["DELETE"])
-def train_progress_finish():
+def train_interrupt():
     sn = request.args.get("sn", default='')
     ts.stop()
     return wrap_response({'sn':sn})

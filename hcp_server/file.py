@@ -16,7 +16,6 @@ def get_image(image_name):
     img.save(img_byte, format='WEBP', quality=90)
     return Response(img_byte.getvalue(), mimetype="image/webp")
 
-
 @app.route(API_PREFIX+"/upload", methods=["POST"])
 def upload():
     f = request.files['file']
