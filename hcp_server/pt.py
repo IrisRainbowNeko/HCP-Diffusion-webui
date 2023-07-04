@@ -19,6 +19,6 @@ def creat_pt():
     sn = create_sn()
 
     info = request.json['info']
-    pt_sec.create_pt(info['pretrained_model'], info['word_name'], info['length_of_word'], info['init_text'], replace=str2bool(info['replace']))
+    pt_sec.create_pt(info['pretrained_model'], info['word_name'], info['length_of_word'], info['init_text'], replace=info['replace'])
 
     return wrap_response({'sn':sn,})
