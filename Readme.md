@@ -8,7 +8,7 @@
 ## 在 Windows 下安装
 
 ### 准备
-1. 安装 [Python 3.10.6](https://www.python.org/downloads/release/python-3106/) (不支持python 3.11), 需要把Python添加到环境变量中 "Add Python to PATH".
+1. 安装 [Python](https://www.python.org/downloads/) (不支持python >= 3.11), 需要把Python添加到环境变量中 "Add Python to PATH".
 2. 安装 [git](https://git-scm.com/download/win).
 3. 安装 [node.js](https://nodejs.org/en/download) (>= 14.0.0).
 
