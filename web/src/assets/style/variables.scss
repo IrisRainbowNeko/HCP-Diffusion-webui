@@ -1,0 +1,40 @@
+$gap: 1em;
+$shadow: 0 0 8px 0 rgb(232 237 258 / 60%), 0 2px 4px 0 rgb(232 237 250 / 50%);
+$tabColor: linear-gradient(3deg, rgb(103 182 229 / 70%), rgb(104 213 203 / 70%));
+$tabColor2: linear-gradient(3deg,  #99d4e1, #a992e1);
+
+// flex layout
+@mixin flexLayout($direction: row, $gap: $gap, $justify: flex-start, $align: stretch) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  gap: $gap;
+}
+
+@mixin blockShadow($s: $shadow) {
+  -webkit-box-shadow: $shadow;
+  box-shadow: $shadow;
+}
+
+// @mixin blockInsetShadow($s:$shadow, $inset: inset) {
+//   -webkit-box-shadow: $shadow $inset;
+//   box-shadow: $shadow $inset;
+// }
+
+@mixin singleline-ellipsis() {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin block-shadow(){
+  // box-shadow: 0 20px 40px -14px rgba(0,0,0,0.25);
+  // box-shadow: 0px 0px 50px rgba(0,0,0,0.3)
+  
+  box-shadow: 0 0 16px #ccc;
+}
+
+@mixin border-radius($radius: 10px) {
+  border-radius: $radius;
+}

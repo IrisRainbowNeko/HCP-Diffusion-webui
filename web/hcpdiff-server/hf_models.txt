@@ -1,0 +1,2 @@
+runwayml/stable-diffusion-v1-5
+CompVis/stable-diffusion-v1-4

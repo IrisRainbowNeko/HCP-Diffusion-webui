@@ -1,0 +1,6 @@
+bin
+dist
+lib
+public
+server/
+node_modules/
