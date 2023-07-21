@@ -84,11 +84,6 @@ gen
 # RAW
 *.raw
 
-# Web P
-*.webp
-
-# Portable Network Graphics
-*.png
 
 # Animated Portable Network Graphics
 *.apng
@@ -771,7 +766,6 @@ pip-selfcheck.json
 *.str
 *.tmp
 *.os
-*.js
 *.pb
 *.dcp
 *.hwdef
@@ -1292,12 +1286,6 @@ gen
 # RAW
 *.raw
 
-# Web P
-*.webp
-
-# Portable Network Graphics
-*.png
-
 # Animated Portable Network Graphics
 *.apng
 
@@ -1979,7 +1967,6 @@ pip-selfcheck.json
 *.str
 *.tmp
 *.os
-*.js
 *.pb
 *.dcp
 *.hwdef
