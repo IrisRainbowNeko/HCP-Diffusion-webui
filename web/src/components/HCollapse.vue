@@ -65,8 +65,7 @@ export default {
       default: true
     },
     config: {
-      type: String,
-      default: ''
+      type: [Object, Array]
     },
     showSwitch: {
       type: Boolean,

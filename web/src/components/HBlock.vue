@@ -104,8 +104,7 @@ export default {
       default: false
     },
     config: {
-      type: String,
-      default: ''
+      type: [Object, Array]
     },
     showEditKey: {
       type: Boolean,

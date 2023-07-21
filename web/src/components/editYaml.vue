@@ -27,8 +27,7 @@ export default {
   components: { YamlEditor },
   props: {
     value: {
-      type: Object,
-      default: () => ({})
+      type: [Object, Array]
     },
     title: {
       type: String,
