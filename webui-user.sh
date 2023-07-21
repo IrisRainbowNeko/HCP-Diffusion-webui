@@ -30,4 +30,6 @@
 # Requirements file to use for stable-diffusion-webui
 #export REQS_FILE="requirements_versions.txt"
 
+export PORT=3001
+
 ###########################################
