@@ -1,6 +1,6 @@
 @echo off
 
-set PYTHON=..\sd-webui-new\venv\Scripts\python.exe
+set PYTHON=
 set PIP=
 set NODEJS=
 set NPM=
