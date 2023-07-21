@@ -1171,6 +1171,17 @@ fabric.properties
 ### Example user template template
 ### Example user template
 
+
+# Developer defined
+### frontend built files
+/web/dist
+### user files
 /output
 /embs
 /exps
+/tmp
+/cfgs
+/sd_models
+/ckpts
+/prompt_dataset
+/prompt_tuning_template
