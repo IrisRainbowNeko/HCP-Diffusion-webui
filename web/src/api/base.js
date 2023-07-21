@@ -2,7 +2,7 @@ import Axios from 'axios';
 
 // 全局设置
 const axiosInstance = Axios.create({
-  baseURL: '',
+  baseURL: 'api/v1',
   timeout: 5000,
   withCredentials: true
 });
