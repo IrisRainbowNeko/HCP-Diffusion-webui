@@ -9,7 +9,7 @@
     @add="addLora_unet"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'lora_unet', value)"
+    @confirm="(value) => (local_config = value)"
   >
     <div class="block-style-item" v-for="(item, index) in local_config || []" :key="index">
       <HBlock label=" " :h-index="2" show-icon @onDelete="deleteLora_unet(index)">
@@ -113,13 +113,13 @@ export default {
   },
   methods: {
     handleLoraUnetCollapseChange(val) {
-      if (val && !this.params.lora_unet) {
+      if (val && !this.local_config) {
         this.addLora_unet();
       }
     },
     addLora_unet() {
       if (!this.local_config) {
-        this.$set(this.params, 'lora_unet', []);
+        this.local_config = [];
       }
       this.local_config.push(JSON.parse(JSON.stringify(lora_unet_default_value)));
       this.$forceUpdate();
@@ -127,7 +127,7 @@ export default {
     deleteLora_unet(index) {
       this.local_config.splice(index, 1);
       if (this.local_config.length === 0) {
-        this.$set(this.params, 'lora_unet', null);
+        this.local_config = null;
         this.isOpen = false;
       }
     },

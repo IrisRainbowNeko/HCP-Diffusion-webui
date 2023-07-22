@@ -9,7 +9,7 @@
     @add="addLora_text_encoder"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'lora_text_encoder', value)"
+    @confirm="(value) => (local_config = value)"
   >
     <HBlock
       :h-index="2"
@@ -123,7 +123,7 @@ export default {
     deleteLora_text_encoder(index) {
       this.local_config.splice(index, 1);
       if (this.local_config && this.local_config.length === 0) {
-        this.$set(this.params, 'lora_text_encoder', null);
+        this.local_config = null;
         this.isOpen = false;
       }
     },

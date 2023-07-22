@@ -13,7 +13,7 @@
     @next="handlerNextDataset"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'data', value)"
+    @confirm="confirmYamlEditY"
   >
     <HBlock>
       <!-- dataset1 -->
@@ -581,7 +581,7 @@ export default {
       this.$delete(this.local_config, dataset);
       const length = Object.keys(this.local_config).length;
       if (length === 0) {
-        this.$set(this.params, 'data', null);
+        this.local_config = null;
         this.isOpenDatasetCollapse = false;
       }
       if (this.datasetIndex > length - 1) {
@@ -727,6 +727,10 @@ export default {
         'word_names',
         value
       );
+      this.$forceUpdate();
+    },
+    confirmYamlEdit(value) {
+      this.$set(this.local_config, this.datasetList[this.currentIndex], value);
       this.$forceUpdate();
     }
   }

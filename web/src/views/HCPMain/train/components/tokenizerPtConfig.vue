@@ -4,7 +4,7 @@
     tooltip="train.tokenizer_ptTip"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'tokenizer_pt', value)"
+    @confirm="(value) => (local_config = value)"
   >
     <HBlock>
       <div class="config-row">

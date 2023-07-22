@@ -9,7 +9,7 @@
     @add="addTextEncoder"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'text_encoder', value)"
+    @confirm="(value) => (local_config = value)"
   >
     <div
       class="block-style-item"
@@ -91,7 +91,7 @@ export default {
     deleteTextEncoder(index) {
       this.local_config.splice(index, 1);
       if (this.local_config && this.local_config.length === 0) {
-        this.$set(this.params, 'text_encoder', null);
+        this.local_config = null;
         this.isOpen = false;
       }
     },

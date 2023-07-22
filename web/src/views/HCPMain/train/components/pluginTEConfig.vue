@@ -9,7 +9,7 @@
     @add="addPluginTe"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'plugin_TE', value)"
+    @confirm="(value) => (local_config = value)"
   >
     <HBlock
       :h-index="2"
@@ -124,7 +124,7 @@ export default {
     },
     addPluginTe() {
       if (!this.local_config) {
-        this.$set(this.params, 'plugin_TE', {});
+        this.local_config = {};
       }
       this.$set(
         this.local_config,
@@ -135,7 +135,7 @@ export default {
     deletePluginTe(pluginTeName) {
       this.$delete(this.local_config, pluginTeName);
       if (Object.keys(this.local_config).length === 0) {
-        this.$set(this.params, 'plugin_TE', null);
+        this.local_config = null;
         this.isOpen = false;
       }
     },

@@ -9,7 +9,7 @@
     @add="addPluginUnet"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'plugin_unet', value)"
+    @confirm="(value) => (local_config = value)"
   >
     <HBlock
       :h-index="2"
@@ -124,7 +124,7 @@ export default {
     },
     addPluginUnet() {
       if (!this.local_config) {
-        this.$set(this.params, 'plugin_unet', {});
+        this.local_config = {};
       }
       this.$set(
         this.local_config,
@@ -135,7 +135,7 @@ export default {
     deletePluginUnet(pluginUnetName) {
       this.$delete(this.local_config, pluginUnetName);
       if (Object.keys(this.local_config).length === 0) {
-        this.$set(this.params, 'plugin_unet', null);
+        this.local_config = null;
         this.isOpen = false;
       }
     },

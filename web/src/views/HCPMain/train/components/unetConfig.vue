@@ -9,7 +9,7 @@
     @add="addUnet"
     showEditYaml
     :config="local_config"
-    @confirm="(value) => this.$set(this.params, 'unet', value)"
+    @confirm="(value) => (local_config = value)"
   >
     <HBlock
       :h-index="2"
@@ -88,7 +88,7 @@ export default {
     deleteUnet(unet_index) {
       this.local_config.splice(unet_index, 1);
       if (this.local_config && this.local_config.length === 0) {
-        this.$set(this.params, 'unet', null);
+        this.local_config = null;
         this.isOpen = false;
       }
     },
