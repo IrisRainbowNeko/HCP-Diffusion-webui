@@ -301,6 +301,11 @@ export default {
       deep: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.config
+    };
+  },
   created() {
     this.config = JSON.parse(JSON.stringify(default_data.merge));
   },

@@ -107,6 +107,11 @@ export default {
       deep: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.config
+    };
+  },
   mounted() {
     this.initConfig();
   },

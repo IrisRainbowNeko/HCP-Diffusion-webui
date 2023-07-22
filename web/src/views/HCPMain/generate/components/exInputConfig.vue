@@ -71,6 +71,11 @@ export default {
       deep: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.config
+    };
+  },
   created() {
     this.cacheConfig = JSON.parse(JSON.stringify(default_data.ex_input));
   },
