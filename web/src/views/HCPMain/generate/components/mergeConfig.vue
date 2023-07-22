@@ -158,7 +158,7 @@
                       v-model="part_item.path"
                       @refresh="handleRefresh('merge_group_part_path')"
                     />
-                    <HConfigInput
+                    <HConfigInputNumber
                       label="alpha"
                       :min="-100000"
                       :max="100000"
