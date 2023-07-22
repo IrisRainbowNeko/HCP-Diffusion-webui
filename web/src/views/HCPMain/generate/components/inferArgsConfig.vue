@@ -6,7 +6,7 @@
     :config="config"
     @confirm="
       (value) => {
-        this.config = JSON.parse(JSON.stringify(value));
+        config = JSON.parse(JSON.stringify(value));
       }
     "
   >
@@ -128,6 +128,9 @@ export default {
       } else {
         this.config.strength = JSON.parse(JSON.stringify(default_data.infer_args.strength));
       }
+    },
+    editYamlCallback(value) {
+      this.config = JSON.parse(JSON.stringify(value));
     }
   }
 };

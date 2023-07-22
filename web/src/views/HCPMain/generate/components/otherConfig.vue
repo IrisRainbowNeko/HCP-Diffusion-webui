@@ -6,7 +6,7 @@
     :config="config"
     @confirm="
       (value) => {
-        this.config = JSON.parse(JSON.stringify(value));
+        config = JSON.parse(JSON.stringify(value));
       }
     "
   >
