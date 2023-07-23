@@ -1,7 +1,7 @@
 import Vue from 'vue';
+import { createPinia, PiniaVuePlugin } from 'pinia';
 import App from './App.vue';
 import router from './router';
-import store from './store';
 import './assets/style/init.scss';
 import 'element-ui/lib/theme-chalk/index.css';
 import HConfigRange from '@/components/HConfigRange.vue';
@@ -73,8 +73,11 @@ Vue.component('HPreviewImg', HPreviewImg);
 Vue.component('HevueImgPreview', hevueImgPreview);
 Vue.use(hevueImgPreview);
 
+Vue.use(PiniaVuePlugin);
+const pinia = createPinia();
+
 new Vue({
   router,
-  store,
+  pinia,
   render: (h) => h(App)
 }).$mount('#app');

@@ -5,20 +5,16 @@
     v-model="isOpenEXInput"
     @onSwitch="handleSwitchMergeConfig"
     showEditYaml
-    :config="config"
-    @confirm="
-      (value) => {
-        this.config = JSON.parse(JSON.stringify(value));
-      }
-    "
+    :config="configStore.generate.ex_input"
+    @confirm="onConfirm"
   >
     <HBlock>
-      <div class="config-row" v-if="config">
+      <div class="config-row" v-if="configStore.generate.ex_input">
         <HConfigInput
           label="cond image"
           tooltip="generate.ex_input.cond.image"
           required
-          v-model="config.cond.image"
+          v-model="configStore.generate.ex_input.cond.image"
           type="file"
         />
       </div>
@@ -27,70 +23,60 @@
 </template>
 <script>
 import { default_data } from '@/constants/index';
+import useConfigStore from '@/store/configStore';
+import { cloneDeep, assign } from 'lodash-es';
 export default {
   name: 'EXInputConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
+    value: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
       isOpenEXInput: false,
-
       // 备份 params.ex_input
-      cacheConfig: JSON.parse(JSON.stringify(default_data.ex_input)),
-
-      config: null
+      cacheConfig: cloneDeep(default_data.ex_input)
     };
   },
+  setup() {
+    const configStore = useConfigStore();
+    return { configStore };
+  },
   watch: {
-    isOpenEXInput: {
+    value: {
       handler: function (val) {
         if (val) {
-          this.config = JSON.parse(JSON.stringify(this.cacheConfig));
-          if (!this.params.ex_input && !this.config) {
-            this.config = JSON.parse(JSON.stringify(default_data.ex_input));
-          }
+          // 必须修改上层才会触发响应
+          this.configStore.generate = {
+            ...this.configStore.generate,
+            ex_input: cloneDeep(this.cacheConfig)
+          };
         } else {
           // 备份
-          this.cacheConfig = JSON.parse(JSON.stringify(this.config));
-          this.config = null;
+          this.cacheConfig = cloneDeep(this.configStore.generate.ex_input);
+          // 必须修改上层才会触发响应
+          this.configStore.generate = {
+            ...this.configStore.generate,
+            ex_input: null
+          };
         }
+        this.isOpenEXInput = val;
       },
       immediate: true
-    },
-    config: {
-      handler: function (value) {
-        this.$emit('updateConfig', {
-          field: 'ex_input',
-          value: JSON.parse(JSON.stringify(value))
-        });
-      },
-      deep: true
     }
   },
-  created() {
-    this.cacheConfig = JSON.parse(JSON.stringify(default_data.ex_input));
-  },
   methods: {
-    initConfig(info) {
-      const ex_input = JSON.parse(JSON.stringify(info.ex_input));
-      this.$set(this, 'config', ex_input);
-      this.isOpenEXInput = !!this.config;
-      // 为了解决切换状态时，config 会被重置的问题
-      setTimeout(() => {
-        if (this.isOpenEXInput && (!!this.config || !this.config)) {
-          this.config = JSON.parse(JSON.stringify(info.ex_input || default_data.ex_input));
-        }
-      }, 300);
-    },
-    getConfig() {
-      return this.config;
+    onConfirm(value) {
+      assign(this.configStore.generate.ex_input, value);
     },
     handleSwitchMergeConfig(val) {
-      this.$emit('onOpen', val);
+      this.$emit('open', val);
     }
   }
 };

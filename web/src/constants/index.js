@@ -70,7 +70,9 @@ export const default_data = {
     // 列表 [i2i, controlnet]
     type: 'i2i',
     // file, 用户上传图片 文件路径 需要upload接口支持
-    image: ''
+    image: '',
+    // file, 用户上传图片 文件路径 需要upload接口支持
+    mask: ''
   },
   ex_input: {
     // 必须值 否
@@ -122,7 +124,9 @@ export const default_data = {
       // 数字输入 [0, 1]
       beta_end: 0.012,
       // 文本输入 不可编辑
-      beta_schedule: 'scaled_linear'
+      beta_schedule: 'scaled_linear',
+      use_karras_sigmas: null,
+      lower_order_final: null
     },
     // 默认值为 null 根据checkbox判断 是否需要该选项
     vae: {
@@ -172,34 +176,34 @@ export const default_data = {
         //   }
         // }
       ]
-    },
-    group2: {
-      // 列表 group_plugin_options
-      type: 'TE',
-      // 文本
-      base_model_alpha: 1,
-      lora: [
-        {
-          // 文本
-          path: '',
-          // 数字输入【0， 1】
-          alpha: 0.65,
-          // 文本 支持所有 默认为all
-          layers: 'all',
-          // 右边值比左边大
-          mask: [0.5, 1]
-        }
-      ],
-      // 没值时 默认为null
-      part: [
-        {
-          // 文本
-          path: '',
-          // 文本
-          alpha: 0.65
-        }
-      ]
     }
+    // group2: {
+    //   // 列表 group_plugin_options
+    //   type: 'TE',
+    //   // 文本
+    //   base_model_alpha: 1,
+    //   lora: [
+    //     {
+    //       // 文本
+    //       path: '',
+    //       // 数字输入【0， 1】
+    //       alpha: 0.65,
+    //       // 文本 支持所有 默认为all
+    //       layers: 'all',
+    //       // 右边值比左边大
+    //       mask: [0.5, 1]
+    //     }
+    //   ],
+    //   // 没值时 默认为null
+    //   part: [
+    //     {
+    //       // 文本
+    //       path: '',
+    //       // 文本
+    //       alpha: 0.65
+    //     }
+    //   ]
+    // }
   },
   interface: [
     {

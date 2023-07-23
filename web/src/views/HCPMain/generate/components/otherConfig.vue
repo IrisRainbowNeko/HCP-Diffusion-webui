@@ -4,11 +4,7 @@
     ref="collapseRef"
     showEditYaml
     :config="config"
-    @confirm="
-      (value) => {
-        this.config = JSON.parse(JSON.stringify(value));
-      }
-    "
+    @confirm="onConfirm"
   >
     <h-block>
       <div class="config-row">
@@ -16,13 +12,13 @@
           label="out_dir"
           tooltip="generate.out_dir"
           disabled
-          v-model="config.out_dir"
+          v-model="configStore.generate.out_dir"
         />
         <h-config-input
           tooltip="generate.emb_dir"
           label="emb_dir"
           disabled
-          v-model="config.emb_dir"
+          v-model="configStore.generate.emb_dir"
         />
       </div>
       <div class="config-row">
@@ -31,24 +27,30 @@
           tooltip="generate.N_repeats"
           :min="1"
           :max="5"
-          v-model="config.N_repeats"
+          v-model="configStore.generate.N_repeats"
         />
         <h-config-range
           label="clip_skip"
           tooltip="generate.clip_skip"
           :min="0"
           :max="4"
-          v-model="config.clip_skip"
+          v-model="configStore.generate.clip_skip"
         />
       </div>
       <div class="config-row">
-        <h-config-range label="bs" tooltip="generate.bs" :min="1" :max="12" v-model="config.bs" />
+        <h-config-range
+          label="bs"
+          tooltip="generate.bs"
+          :min="1"
+          :max="12"
+          v-model="configStore.generate.bs"
+        />
         <h-config-range
           label="num"
           tooltip="generate.num"
           :min="1"
           :max="100"
-          v-model="config.num"
+          v-model="configStore.generate.num"
         />
       </div>
       <div class="config-row">
@@ -56,13 +58,13 @@
           label="seed"
           tooltip="generate.seed"
           :min="1"
-          v-model="config.seed"
+          v-model="configStore.generate.seed"
         />
         <h-config-select
           label="dtype"
           tooltip="generate.dtype"
           :options="dtype_options"
-          v-model="config.dtype"
+          v-model="configStore.generate.dtype"
         />
       </div>
     </h-block>
@@ -70,58 +72,33 @@
 </template>
 <script>
 import { dtype_options } from '@/constants/index';
+import useConfigStore from '@/store/configStore';
+import { pick, assign } from 'lodash-es';
+const keys = ['out_dir', 'emb_dir', 'N_repeats', 'clip_skip', 'bs', 'num', 'seed', 'dtype'];
 export default {
   name: 'OtherConfig',
-  props: {
-    params: {
-      type: Object,
-      default: () => {}
-    }
-  },
   data() {
     return {
-      dtype_options,
-
-      config: JSON.parse(
-        JSON.stringify(this.params, [
-          'out_dir',
-          'emb_dir',
-          'N_repeats',
-          'clip_skip',
-          'bs',
-          'num',
-          'seed',
-          'dtype'
-        ])
-      )
+      dtype_options
     };
   },
-  watch: {
-    config: {
-      handler: function (value) {
-        this.$emit('updateConfig', {
-          field: 'other',
-          value: JSON.parse(JSON.stringify(value))
-        });
-      },
-      deep: true
-    }
+  setup() {
+    const configStore = useConfigStore();
+    return { configStore };
   },
-  mounted() {
-    this.initConfig();
+  computed: {
+    config() {
+      return pick(this.configStore.generate, keys);
+    }
   },
   methods: {
     initConfig() {
-      Object.keys(this.config).forEach((key) => {
-        if (key === 'seed' && !this.params[key]) {
-          this.config[key] = 1;
-          return;
-        }
-        this.config[key] = this.params[key];
-      });
-      this.$nextTick(() => {
-        this.$refs.collapseRef.open();
-      });
+      if (!this.configStore.seed) {
+        this.configStore.seed = 1;
+      }
+    },
+    onConfirm(value) {
+      assign(this.configStore.generate, value);
     }
   }
 };

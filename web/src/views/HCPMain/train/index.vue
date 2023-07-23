@@ -1358,7 +1358,8 @@ import {
 } from '@/constants/index';
 
 import { getTrain, updateTrain, getTrainStatus, stopTrain } from '@/api/train';
-import { mapGetters } from 'vuex';
+// import { mapGetters } from 'vuex';
+import useSnStore from '@/store/snStore';
 import { handleOptions } from '@/utils/index';
 import { merge, isEmpty } from 'lodash-es';
 export default {
@@ -1422,6 +1423,10 @@ export default {
       datasetIndex: 0
     };
   },
+  setup() {
+    const snStore = useSnStore();
+    return { snStore };
+  },
   watch: {
     lossConfig(val) {
       this.params.train.loss.criterion = lossConfigs[val];
@@ -1443,7 +1448,6 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['trainSn']),
     getDatasetName({ datasetList }) {
       const length = datasetList.length;
       let datasetName = `dataset${length + 1}`;
@@ -1520,7 +1524,7 @@ export default {
       }
     },
     async handleInterrupt() {
-      const result = await stopTrain(this.trainSn).catch(() => {
+      const result = await stopTrain(this.snStore.train_sn).catch(() => {
         this.$message.error('interrupt failed');
       });
       if (!result) return;
@@ -1542,12 +1546,12 @@ export default {
       if (!result) return;
       const { sn } = result;
 
-      this.$store.commit('setTrainSnSn', sn);
+      this.snStore.setTrainSnSn(sn);
       this.getTrainStatus();
     },
     // 轮询获取进度
     async getTrainStatus() {
-      const result = await getTrainStatus({ sn: this.trainSn }).catch(() => {
+      const result = await getTrainStatus({ sn: this.snStore.train_sn }).catch(() => {
         this.$message.error('get training progress failed');
       });
       if (!result) return;
@@ -1928,7 +1932,7 @@ export default {
       this.params.data[dataset].source[source].image_transforms.transforms.splice(index, 1);
     },
     async initDefaultData() {
-      const result = await getTrain(this.trainSn).catch((err) => {
+      const result = await getTrain(this.snStore.train_sn).catch((err) => {
         this.$message.error(err);
       });
       if (!result) return;

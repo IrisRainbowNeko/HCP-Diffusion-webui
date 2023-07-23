@@ -7,7 +7,7 @@
           <el-input
             type="textarea"
             placeholder="Prompt"
-            v-model="params.prompt"
+            v-model="configStore.generate.prompt"
             maxlength="1500"
             show-word-limit
             autofocus
@@ -16,7 +16,7 @@
           <el-input
             type="textarea"
             placeholder="Negative prompt"
-            v-model="params.neg_prompt"
+            v-model="configStore.generate.neg_prompt"
             maxlength="1500"
             show-word-limit
             :autosize="{ minRows: 6, maxRows: 6 }"
@@ -46,14 +46,14 @@
             </div>
           </div>
           <div class="config-row">
-            <el-checkbox v-model="params.save.save_cfg">save_cfg</el-checkbox>
+            <el-checkbox v-model="configStore.generate.save.save_cfg">save_cfg</el-checkbox>
           </div>
           <div class="config-row">
             <HConfigSelect
               tooltip="generate.save.image_type"
               label="image_type"
               :options="image_typ_options"
-              v-model="params.save.image_type"
+              v-model="configStore.generate.save.image_type"
               style="font-size: 13px"
             />
             <HConfigInputNumber
@@ -62,7 +62,7 @@
               :min="1"
               :max="100"
               :step="1"
-              v-model="params.save.quality"
+              v-model="configStore.generate.save.quality"
               style="font-size: 13px"
             />
           </div>
@@ -74,42 +74,27 @@
         <div class="config-item">
           <div class="config-item-scroll-wrap">
             <!-- 取样方法配置 -->
-            <OtherConfig ref="otherConfig" :params="params" @updateConfig="onUpdateConfig" />
+            <OtherConfig />
             <!-- infer_args -->
-            <InferArgsConfig
-              ref="inferArgsConfig"
-              :params="params"
-              @updateConfig="onUpdateConfig"
-            />
+            <InferArgsConfig />
           </div>
         </div>
         <div class="config-item">
+          <!-- eslint-disable-next-line -->
+          <span style="width: 50%;">{{ configStore.generate }}</span> 
           <div class="config-item-scroll-wrap">
             <!-- offload -->
-            <OffloadConfig ref="offloadConfig" :params="params" @updateConfig="onUpdateConfig" />
+            <OffloadConfig v-model="isOpenOffload" />
 
             <!-- condition -->
-            <ConditionConfig
-              ref="conditionConfig"
-              :params="params"
-              @updateConfig="onUpdateConfig"
-              @onOpen="changeOpenConditionConfig"
-            />
+            <ConditionConfig v-model="isOpenConditionConfig" />
 
             <!-- ex_input -->
-            <EXInputConfig
-              ref="exInputConfig"
-              :params="params"
-              @updateConfig="onUpdateConfig"
-              @onOpen="changeOpenEXInputConfig"
-            />
+            <EXInputConfig v-model="isOpenEXInput" />
 
             <!-- new_components -->
             <NewComponentsConfig
-              ref="newComponentsConfig"
-              :params="params"
               :pretrained_model_name_or_path_options="pretrained_model_name_or_path_options"
-              @updateConfig="onUpdateConfig"
             />
           </div>
         </div>
@@ -117,14 +102,12 @@
           <div class="config-item-scroll-wrap">
             <!-- merge -->
             <MergeConfig
+              v-model="isOpenMergeConfig"
               ref="mergeConfig"
-              :params="params"
               :merge_group_lora_path="merge_group_lora_path"
               :merge_group_part_path="merge_group_part_path"
               :merge_group_plugin_controlnet1_path="merge_group_plugin_controlnet1_path"
               @refresh="handleRefresh"
-              @updateConfig="onUpdateConfig"
-              @onOpen="changeOpenMergeConfig"
             />
           </div>
         </div>
@@ -149,8 +132,9 @@ import NewComponentsConfig from './components/newComponentsConfig.vue';
 import MergeConfig from './components/mergeConfig.vue';
 import { getGenerateDir } from '@/api/file';
 import { handleOptions, validateParams } from '@/utils/index';
-import { merge, isEmpty } from 'lodash-es';
-import { mapGetters } from 'vuex';
+import { merge, cloneDeep } from 'lodash-es';
+import useSnStore from '@/store/snStore';
+import useConfigStore from '@/store/configStore';
 const STATUS = {
   LOADING: 'loading',
   SUCCESS: 'success'
@@ -181,7 +165,6 @@ export default {
     return {
       status: STATUS.SUCCESS,
       STATUS,
-      params: JSON.parse(JSON.stringify(default_data)),
       image_typ_options,
       merge_group_lora_path: [],
       merge_group_part_path: [],
@@ -192,21 +175,25 @@ export default {
       timer: null,
       isOpenMergeConfig: false,
       isOpenConditionConfig: false,
-      isOpenEXInput: false
+      isOpenEXInput: false,
+      isOpenOffload: false
     };
   },
-  computed: {
-    ...mapGetters(['generateSn'])
+  setup() {
+    const snStore = useSnStore();
+    const configStore = useConfigStore();
+    return { snStore, configStore };
   },
   watch: {
     pretrained_model: {
       handler: function (val) {
-        this.params.pretrained_model = val;
+        debugger;
+        this.configStore.generate.pretrained_model = val;
       },
       immediate: true
     }
   },
-  created() {
+  mounted() {
     this.initDefaultData();
   },
   methods: {
@@ -223,12 +210,12 @@ export default {
       });
       if (!result) return;
       const { sn } = result;
-      this.$store.commit('setGenerateSnSn', sn);
+      this.snStore.setGenerateSnSn(sn);
       this.getProgress();
     },
     // 中断
     async handleInterrupt() {
-      const result = await stopGenerate(this.generateSn).catch(() => {
+      const result = await stopGenerate(this.snStore.generate_sn).catch(() => {
         this.$message.error('interrupt failure');
       });
       if (!result) return;
@@ -245,7 +232,7 @@ export default {
     },
     // 轮询获取进度
     async getProgress() {
-      const result = await getGenerateProgress(this.generateSn).catch(() => {
+      const result = await getGenerateProgress(this.snStore.generate_sn).catch(() => {
         this.$message.error('fetch generate progress failed');
       });
       if (!result) return;
@@ -261,7 +248,7 @@ export default {
         this.status = STATUS.SUCCESS;
         this.imgs = images;
         this.progress = 0;
-        this.$store.commit('setGenerateSnSn', sn);
+        this.snStore.setGenerateSnSn(sn);
       }
       this.$emit('onMessage', status);
     },
@@ -276,7 +263,7 @@ export default {
     },
 
     async initDefaultData() {
-      const result = await getGenerateConfig(this.generateSn).catch(() => {
+      const result = await getGenerateConfig(this.snStore.generate_sn).catch(() => {
         this.$message.error('fetch setting failed');
       });
       if (!result) return;
@@ -292,14 +279,7 @@ export default {
         server_yaml_file = [],
         pretrained_model_name_or_path = []
       } = result;
-      const newInfo = JSON.parse(JSON.stringify(info));
-      this.$set(this, 'params', JSON.parse(JSON.stringify(default_data)));
-      this.$set(this, 'params', merge(this.params, info));
-      if (!isEmpty(newInfo)) {
-        setTimeout(() => {
-          this.initAllConfig(newInfo);
-        });
-      }
+
       if (images.length) {
         this.imgs = images;
       }
@@ -313,6 +293,7 @@ export default {
       this.merge_group_plugin_controlnet1_path = handleOptions(merge_group_plugin_controlnet1_path);
       this.pretrained_model_name_or_path_options = handleOptions(pretrained_model_name_or_path);
       const { pretrained_model } = info || {};
+      debugger;
       this.$emit('getPretrainedMode', {
         options: handleOptions(pretrained_mode),
         pretrained_model,
@@ -320,37 +301,26 @@ export default {
         files: 'generate_server_yaml_file_options',
         valueFiles: 'generate_yaml_template_sn'
       });
-    },
 
-    initAllConfig(info) {
-      this.$refs.mergeConfig && this.$refs.mergeConfig.initConfig(info);
-      this.$refs.conditionConfig && this.$refs.conditionConfig.initConfig(info);
-      this.$refs.exInputConfig && this.$refs.exInputConfig.initConfig(info);
-      this.$refs.offloadConfig && this.$refs.offloadConfig.initConfig(info);
-      this.$refs.newComponentsConfig && this.$refs.newComponentsConfig.initConfig(info);
-      this.$refs.inferArgsConfig && this.$refs.inferArgsConfig.initConfig(info);
-      this.$refs.otherConfig && this.$refs.otherConfig.initConfig(info);
+      const newInfo = merge(cloneDeep(default_data), info);
 
-      const { merge } = info;
-      if (merge) {
-        this.isOpenMergeConfig = true;
-      }
-    },
+      // 保留模型
+      newInfo.pretrained_model = this.configStore.generate.pretrained_model;
 
-    onUpdateConfig({ value, field }) {
-      if (field === 'other') {
-        this.params = { ...this.params, ...value };
-      } else {
-        this.params[field] = value || null;
-
-        if (field === 'condition') {
-          this.$refs.inferArgsConfig && this.$refs.inferArgsConfig.initStrength();
-        }
-      }
+      // 控制开关
+      this.isOpenConditionConfig = !!newInfo.condition;
+      this.isOpenEXInput = !!newInfo.ex_input;
+      this.isOpenMergeConfig = !!newInfo.merge;
+      this.isOpenOffload = !!newInfo.offload;
+      // 先打开折叠再更新数据，否则将不会渲染页面。
+      this.$nextTick(() => {
+        // 触发全局相应
+        this.configStore.generate = { ...newInfo };
+      });
     },
 
     handlerInfo() {
-      const params = JSON.parse(JSON.stringify(this.params));
+      const params = cloneDeep(this.configStore.generate);
       const { isOpenMergeConfig } = this;
       const { infer_args, new_components, merge } = params;
       if (!isOpenMergeConfig) {
@@ -395,20 +365,10 @@ export default {
 
       return params;
     },
-
-    changeOpenMergeConfig(e) {
-      this.isOpenMergeConfig = e;
-    },
-    changeOpenConditionConfig(e) {
-      this.isOpenConditionConfig = e;
-    },
-    changeOpenEXInputConfig(e) {
-      this.isOpenEXInput = e;
-    },
     // 校验参数
     validate() {
       const self = this;
-      const params = JSON.parse(JSON.stringify(this.params));
+      const params = cloneDeep(this.configStore.generate);
       const requiredField = {
         'condition.image': {
           // 可自定义

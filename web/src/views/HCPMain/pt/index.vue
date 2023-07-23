@@ -51,7 +51,7 @@ import HBlock from '@/components/HBlock.vue';
 import HConfigInput from '@/components/HConfigInput.vue';
 import HConfigInputNumber from '@/components/HConfigInputNumber.vue';
 import { generatePtAction, getPtAction } from '@/api/generate';
-import { mapGetters } from 'vuex';
+import useSnStore from '@/store/snStore';
 export default {
   name: 'HPt',
   components: {
@@ -76,8 +76,9 @@ export default {
       isDisabled: false
     };
   },
-  computed: {
-    ...mapGetters(['ptSn'])
+  setup() {
+    const snStore = useSnStore();
+    return { snStore };
   },
   created() {
     this.fetchData();
@@ -102,7 +103,7 @@ export default {
       })
         .then((result) => {
           const { sn } = result;
-          this.$store.commit('setPtSnSn', sn);
+          this.snStore.setPtSnSn(sn);
           this.$message.success('create word pt is running now, please waiting...');
         })
         .catch(() => {
@@ -113,7 +114,7 @@ export default {
         });
     },
     fetchData() {
-      getPtAction(this.ptSn)
+      getPtAction(this.snStore.pt_sn)
         .then((result) => {
           console.log(result);
         })

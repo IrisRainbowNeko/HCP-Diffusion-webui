@@ -6,19 +6,15 @@
     @onSwitch="handleSwitchMergeConfig"
     showEditYaml
     :config="config"
-    @confirm="
-      (value) => {
-        this.config = JSON.parse(JSON.stringify(value));
-      }
-    "
+    @confirm="onConfirm"
   >
     <HBlock>
-      <div class="config-row" v-if="config">
+      <div class="config-row" v-if="configStore.generate.condition">
         <HConfigSelect
           label="type"
           tooltip="generate.condition.type"
           :options="type_options"
-          v-model="config.type"
+          v-model="configStore.generate.condition.type"
         />
       </div>
       <div class="config-row" v-if="config">
@@ -26,7 +22,7 @@
           label="image"
           tooltip="generate.condition.image"
           required
-          v-model="config.image"
+          v-model="configStore.generate.condition.image"
           type="file"
         />
       </div>
@@ -35,7 +31,7 @@
           label="mask"
           tooltip="generate.condition.mask"
           required
-          v-model="config.image"
+          v-model="configStore.generate.condition.mask"
           type="file"
         />
       </div>
@@ -44,71 +40,66 @@
 </template>
 <script>
 import { default_data, type_options } from '@/constants/index';
+import useConfigStore from '@/store/configStore';
+import { cloneDeep, assign } from 'lodash-es';
 export default {
   name: 'ConditionConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
+    value: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
       type_options,
       isOpenConditionConfig: false,
-
       // 备份 params.condition
-      cacheConfig: JSON.parse(JSON.stringify(default_data.condition)),
-
-      config: null
+      cacheConfig: cloneDeep(default_data.condition)
     };
   },
-  watch: {
-    isOpenConditionConfig: {
-      handler: function (val) {
-        if (val) {
-          this.config = JSON.parse(JSON.stringify(this.cacheConfig));
-          if (!this.params.condition && !this.config) {
-            this.config = JSON.parse(JSON.stringify(default_data.condition));
-          }
-        } else {
-          // 备份
-          this.cacheConfig = JSON.parse(JSON.stringify(this.config));
-          this.config = null;
-        }
-      },
-      immediate: true
-    },
-    config: {
-      handler: function (value) {
-        this.$emit('updateConfig', {
-          field: 'condition',
-          value: JSON.parse(JSON.stringify(value))
-        });
-      },
-      deep: true
+  setup() {
+    const configStore = useConfigStore();
+    return { configStore };
+  },
+  computed: {
+    config() {
+      return this.configStore.generate.condition;
     }
   },
-  created() {
-    this.cacheConfig = JSON.parse(JSON.stringify(default_data.condition));
+  watch: {
+    value: {
+      handler: function (val) {
+        if (val) {
+          // 必须修改上层才会触发响应
+          this.configStore.generate = {
+            ...this.configStore.generate,
+            conditon: cloneDeep(this.cacheConfig)
+          };
+        } else {
+          // 备份
+          this.cacheConfig = cloneDeep(this.configStore.generate.condition);
+          // 必须修改上层才会触发响应
+          this.configStore.generate = {
+            ...this.configStore.generate,
+            conditon: null
+          };
+        }
+        this.isOpenConditionConfig = val;
+      },
+      immediate: true
+    }
   },
   methods: {
-    initConfig(info) {
-      const condition = JSON.parse(JSON.stringify(info.condition));
-      this.$set(this, 'config', condition);
-      this.isOpenConditionConfig = !!this.config;
-      // 为了解决切换状态时，config 会被重置的问题
-      setTimeout(() => {
-        if (this.isOpenConditionConfig && (!!this.config || !this.config)) {
-          this.config = JSON.parse(JSON.stringify(info.condition || default_data.condition));
-        }
-      }, 300);
-    },
-    getConfig() {
-      return this.config;
+    onConfirm(value) {
+      assign(this.configStore.generate.condition, value);
     },
     handleSwitchMergeConfig(val) {
-      this.$emit('onOpen', val);
+      this.$emit('open', val);
     }
   }
 };

@@ -4,11 +4,7 @@
     ref="collapseRef"
     showEditYaml
     :config="config"
-    @confirm="
-      (value) => {
-        this.config = JSON.parse(JSON.stringify(value));
-      }
-    "
+    @confirm="onConfirm"
   >
     <HBlock>
       <div class="config-row">
@@ -18,7 +14,7 @@
           :min="128"
           :max="2048"
           :step="8"
-          v-model="config.width"
+          v-model="configStore.generate.infer_args.width"
         />
         <HConfigRange
           label="height"
@@ -26,7 +22,7 @@
           :min="128"
           :max="2048"
           :step="8"
-          v-model="config.height"
+          v-model="configStore.generate.infer_args.height"
         />
       </div>
       <div class="config-row">
@@ -36,7 +32,7 @@
           :min="1"
           :max="20"
           :step="0.5"
-          v-model="config.guidance_scale"
+          v-model="configStore.generate.infer_args.guidance_scale"
         />
       </div>
       <div class="config-row">
@@ -47,7 +43,7 @@
           :max="200"
           :step="1"
           integer
-          v-model="config.num_inference_steps"
+          v-model="configStore.generate.infer_args.num_inference_steps"
         />
       </div>
       <div class="config-row" v-if="isi2i">
@@ -65,69 +61,42 @@
 </template>
 <script>
 import { default_data } from '@/constants/index';
+import useConfigStore from '@/store/configStore';
+import { cloneDeep, assign } from 'lodash-es';
 export default {
   name: 'InferArgsConfig',
-  props: {
-    params: {
-      type: Object,
-      default: () => {}
-    }
-  },
-  data() {
-    return {
-      config: JSON.parse(JSON.stringify(default_data.infer_args))
-    };
+  setup() {
+    const configStore = useConfigStore();
+    return { configStore };
   },
   computed: {
     isi2i() {
-      return this.params.condition && this.params.condition.type === 'i2i';
+      return (
+        this.configStore.generate.condition && this.configStore.generate.condition.type === 'i2i'
+      );
+    },
+    config() {
+      return cloneDeep(this.configStore.generate.infer_args);
     }
   },
   watch: {
-    'params.condition.type': {
+    'configStore.generate.condition.type': {
       handler: function (val) {
         if (val !== 'i2i') {
-          this.config.strength = null;
+          this.configStore.generate.infer_args.strength = null;
         } else {
-          this.config.strength = JSON.parse(JSON.stringify(default_data.infer_args.strength));
+          this.configStore.generate.infer_args.strength = cloneDeep(
+            default_data.infer_args.strength
+          );
         }
       },
       deep: true,
       immediate: true
-    },
-    config: {
-      handler: function (value) {
-        this.$emit('updateConfig', {
-          field: 'infer_args',
-          value
-        });
-      },
-      deep: true
     }
   },
-  created() {
-    this.config = JSON.parse(JSON.stringify(default_data.infer_args));
-    this.initStrength();
-  },
   methods: {
-    initConfig(info) {
-      this.config = JSON.parse(JSON.stringify(info.infer_args));
-      this.initStrength(info);
-
-      this.$nextTick(() => {
-        this.$refs.collapseRef.open();
-      });
-    },
-    getConfig() {
-      return this.config;
-    },
-    initStrength() {
-      const type = this.params.condition || {};
-      if (type !== 'i2i') {
-        this.config.strength = null;
-      } else {
-        this.config.strength = JSON.parse(JSON.stringify(default_data.infer_args.strength));
-      }
+    onConfirm(value) {
+      assign(this.configStore.generate.infer_args, value);
     }
   }
 };
