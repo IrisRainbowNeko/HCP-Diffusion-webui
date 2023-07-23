@@ -80,8 +80,6 @@
           </div>
         </div>
         <div class="config-item">
-          <!-- eslint-disable-next-line -->
-          <span style="width: 50%;">{{ configStore.generate }}</span> 
           <div class="config-item-scroll-wrap">
             <!-- offload -->
             <OffloadConfig v-model="isOpenOffload" />
