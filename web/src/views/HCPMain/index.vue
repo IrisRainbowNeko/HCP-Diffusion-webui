@@ -179,7 +179,6 @@ export default {
         });
     },
     getPretrainedMode({ options, pretrained_model, server_yaml_file, files, valueFiles }) {
-      debugger;
       this.options = options;
       this.pretrained_model = pretrained_model || this.pretrained_model;
       this[files] = server_yaml_file.map((item) => {

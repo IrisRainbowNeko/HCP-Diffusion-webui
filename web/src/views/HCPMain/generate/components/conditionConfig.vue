@@ -94,6 +94,11 @@ export default {
       immediate: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.configStore.generate.condition
+    };
+  },
   methods: {
     onConfirm(value) {
       assign(this.configStore.generate.condition, value);

@@ -19,9 +19,8 @@
             ></el-button>
             <EditYaml
               title="编辑Yaml源数据"
-              :value="config"
               v-if="showEditYaml"
-              @confirm="(e) => this.$emit('confirm', e)"
+              @confirm="(e) => $emit('confirm', e)"
             />
             <el-button
               type="text"

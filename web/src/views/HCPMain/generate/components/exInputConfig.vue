@@ -71,6 +71,11 @@ export default {
       immediate: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.configStore.generate.ex_input
+    };
+  },
   methods: {
     onConfirm(value) {
       assign(this.configStore.generate.ex_input, value);

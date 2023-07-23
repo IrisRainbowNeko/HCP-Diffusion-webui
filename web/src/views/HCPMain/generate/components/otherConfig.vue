@@ -91,6 +91,11 @@ export default {
       return pick(this.configStore.generate, keys);
     }
   },
+  provide() {
+    return {
+      configValue: () => this.config
+    };
+  },
   methods: {
     initConfig() {
       if (!this.configStore.seed) {

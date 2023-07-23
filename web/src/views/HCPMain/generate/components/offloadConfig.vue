@@ -79,6 +79,11 @@ export default {
       immediate: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.configStore.generate.offload
+    };
+  },
   methods: {
     onConfirm(value) {
       assign(this.configStore.generate.offload, value);

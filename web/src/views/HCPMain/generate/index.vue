@@ -185,7 +185,6 @@ export default {
   watch: {
     pretrained_model: {
       handler: function (val) {
-        debugger;
         this.configStore.generate.pretrained_model = val;
       },
       immediate: true
@@ -291,7 +290,6 @@ export default {
       this.merge_group_plugin_controlnet1_path = handleOptions(merge_group_plugin_controlnet1_path);
       this.pretrained_model_name_or_path_options = handleOptions(pretrained_model_name_or_path);
       const { pretrained_model } = info || {};
-      debugger;
       this.$emit('getPretrainedMode', {
         options: handleOptions(pretrained_mode),
         pretrained_model,

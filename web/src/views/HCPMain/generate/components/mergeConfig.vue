@@ -296,6 +296,11 @@ export default {
       }
     }
   },
+  provide() {
+    return {
+      configValue: () => this.configStore.generate.merge
+    };
+  },
   methods: {
     onConfirm(value) {
       assign(this.configStore.generate.merge, value);

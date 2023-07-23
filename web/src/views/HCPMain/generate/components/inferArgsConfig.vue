@@ -94,6 +94,11 @@ export default {
       immediate: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.configStore.generate.infer_args
+    };
+  },
   methods: {
     onConfirm(value) {
       assign(this.configStore.generate.infer_args, value);

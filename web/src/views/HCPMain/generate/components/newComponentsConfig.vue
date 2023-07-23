@@ -195,6 +195,11 @@ export default {
       immediate: true
     }
   },
+  provide() {
+    return {
+      configValue: () => this.config
+    };
+  },
   created() {
     // 备份 params.new_components.vae
     this.initNewComponentsVae = cloneDeep(default_data.new_components.vae);
