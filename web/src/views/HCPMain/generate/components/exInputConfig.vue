@@ -8,7 +8,7 @@
     :config="config"
     @confirm="
       (value) => {
-        this.config = JSON.parse(JSON.stringify(value));
+        config = JSON.parse(JSON.stringify(value));
       }
     "
   >
@@ -70,6 +70,11 @@ export default {
       },
       deep: true
     }
+  },
+  provide() {
+    return {
+      configValue: () => this.config
+    };
   },
   created() {
     this.cacheConfig = JSON.parse(JSON.stringify(default_data.ex_input));

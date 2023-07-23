@@ -8,6 +8,7 @@
       :title="title"
       :visible="dialogVisible"
       width="50%"
+      @open="open"
       :before-close="cancel"
       append-to-body
     >
@@ -26,9 +27,6 @@ export default {
   name: 'EditYaml',
   components: { YamlEditor },
   props: {
-    value: {
-      type: [Object, Array]
-    },
     title: {
       type: String,
       default: '编辑yaml源数据'
@@ -40,16 +38,15 @@ export default {
       dialogVisible: false
     };
   },
-  watch: {
-    value: {
-      handler: function (val) {
-        this.yaml_data = yaml.dump(val);
-      },
-      immediate: true,
-      deep: true
-    }
+  inject: ['configValue'],
+  mounted() {
+    this.yaml_data = yaml.dump(this.configValue());
   },
   methods: {
+    open() {
+      console.log('open', this.configValue());
+      this.yaml_data = yaml.dump(this.configValue());
+    },
     cancel() {
       this.dialogVisible = false;
       this.$emit('cancel');
