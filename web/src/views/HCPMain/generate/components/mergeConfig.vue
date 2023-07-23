@@ -38,11 +38,7 @@
               @onDelete="deleteMergeGroupConfig(groupKey)"
               showEditYaml
               :config="configStore.generate.merge[groupKey]"
-              @confirm="
-                (value) => {
-                  config[groupKey] = value;
-                }
-              "
+              @confirm="(value) => onCarouselItemConfirm(groupKey, value)"
             >
               <template>
                 <div class="config-row">
@@ -70,11 +66,7 @@
                   @onAdd="addMergeGroupPropConfig(groupKey, 'lora')"
                   showEditYaml
                   :config="item.lora"
-                  @confirm="
-                    (value) => {
-                      item['lora'] = value;
-                    }
-                  "
+                  @confirm="(value) => onBlockConfirm(groupKey, 'lora', value)"
                 >
                   <div
                     class="block-style-item"
@@ -134,11 +126,7 @@
                   @onAdd="addMergeGroupPropConfig(groupKey, 'part')"
                   showEditYaml
                   :config="item.part"
-                  @confirm="
-                    (value) => {
-                      item['part'] = value;
-                    }
-                  "
+                  @confirm="(value) => onBlockConfirm(groupKey, 'part', value)"
                 >
                   <div
                     class="block-style-item"
@@ -180,11 +168,7 @@
                   @onAdd="addMergeGroupPropConfig(groupKey, 'plugin')"
                   showEditYaml
                   :config="item.plugin"
-                  @confirm="
-                    (value) => {
-                      item['plugin'] = value;
-                    }
-                  "
+                  @confirm="(value) => onBlockConfirm(groupKey, 'plugin', value)"
                 >
                   <template v-if="item.plugin">
                     <div
@@ -317,10 +301,14 @@ export default {
       assign(this.configStore.generate.merge, value);
     },
     onCarouselItemConfirm(groupKey, value) {
-      assign(this.configStore.generate.merge[groupKey], value);
+      const config = this.configStore.generate.merge;
+      config[groupKey] = value;
+      assign(this.configStore.generate, config);
     },
     onBlockConfirm(groupKey, prop, value) {
-      assign(this.configStore.generate.merge[groupKey][prop], value);
+      const config = this.configStore.generate.merge;
+      config[groupKey][prop] = value;
+      assign(this.configStore.generate, config);
     },
     handleChangeType(type, groupKey) {
       const config = cloneDeep(this.configStore.generate.merge);
