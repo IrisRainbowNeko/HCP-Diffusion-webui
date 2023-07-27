@@ -13,7 +13,7 @@
     @next="handlerNextDataset"
     showEditYaml
     :config="local_config"
-    @confirm="confirmYamlEditY"
+    @confirm="(value) => (local_config = value)"
   >
     <HBlock>
       <!-- dataset1 -->
@@ -39,7 +39,12 @@
               @onDelete="deleteDataset(dataset)"
               showEditYaml
               :config="local_config[dataset]"
-              @confirm="(value) => this.$set(this.local_config, dataset, value)"
+              @confirm="
+                (value) => {
+                  debugger;
+                  this.$set(this.local_config, dataset, value);
+                }
+              "
             >
               <div class="config-row">
                 <HConfigInput
@@ -509,11 +514,6 @@ export default {
     tagTransformsConfig() {
       return handleOptions(tag_transformsConfigKeysOptions);
     }
-  },
-  provide() {
-    return {
-      configValue: () => this.local_config[this.datasetList[this.currentIndex]]
-    };
   },
   created() {
     this.initData();

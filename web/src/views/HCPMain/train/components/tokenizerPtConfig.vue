@@ -84,11 +84,6 @@ export default {
       immediate: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.local_config
-    };
-  },
   methods: {
     addTokenizer_ptLogger() {
       if (!this.local_config.train) {

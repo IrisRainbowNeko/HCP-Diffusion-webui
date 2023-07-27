@@ -71,11 +71,6 @@ export default {
       immediate: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.local_config
-    };
-  },
   methods: {
     handleTextEncoderCollapseChange(val) {
       if (val && !this.local_config) {
