@@ -5,33 +5,33 @@
     v-model="isOpenConditionConfig"
     @onSwitch="handleSwitchMergeConfig"
     showEditYaml
-    :config="config"
+    :config="config.condition"
     @confirm="onConfirm"
   >
     <HBlock>
-      <div class="config-row" v-if="configStore.generate.condition">
+      <div class="config-row" v-if="config.condition">
         <HConfigSelect
           label="type"
           tooltip="generate.condition.type"
           :options="type_options"
-          v-model="configStore.generate.condition.type"
+          v-model="config.condition.type"
         />
       </div>
-      <div class="config-row" v-if="config">
+      <div class="config-row" v-if="config.condition">
         <HConfigInput
           label="image"
           tooltip="generate.condition.image"
           required
-          v-model="configStore.generate.condition.image"
+          v-model="config.condition.image"
           type="file"
         />
       </div>
-      <div class="config-row" v-if="config">
+      <div class="config-row" v-if="config.condition">
         <HConfigInput
           label="mask"
           tooltip="generate.condition.mask"
           required
-          v-model="configStore.generate.condition.mask"
+          v-model="config.condition.mask"
           type="file"
         />
       </div>
@@ -40,6 +40,7 @@
 </template>
 <script>
 import { default_data, type_options } from '@/constants/index';
+import { storeToRefs } from 'pinia';
 import useConfigStore from '@/store/configStore';
 import { cloneDeep, assign } from 'lodash-es';
 export default {
@@ -64,44 +65,27 @@ export default {
   },
   setup() {
     const configStore = useConfigStore();
-    return { configStore };
-  },
-  computed: {
-    config() {
-      return this.configStore.generate.condition;
-    }
+    const { generate } = storeToRefs(configStore);
+    return { configStore, config: generate };
   },
   watch: {
     value: {
       handler: function (val) {
         if (val) {
-          // 必须修改上层才会触发响应
-          this.configStore.generate = {
-            ...this.configStore.generate,
-            conditon: cloneDeep(this.cacheConfig)
-          };
+          this.configStore.updateGenerateByPath('condition', this.cacheConfig);
         } else {
           // 备份
-          this.cacheConfig = cloneDeep(this.configStore.generate.condition);
-          // 必须修改上层才会触发响应
-          this.configStore.generate = {
-            ...this.configStore.generate,
-            conditon: null
-          };
+          this.cacheConfig = cloneDeep(this.config.condition || default_data.condition);
+          this.configStore.updateGenerateByPath('condition', null);
         }
         this.isOpenConditionConfig = val;
       },
       immediate: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.configStore.generate.condition
-    };
-  },
   methods: {
     onConfirm(value) {
-      assign(this.configStore.generate.condition, value);
+      assign(this.config.condition, value);
     },
     handleSwitchMergeConfig(val) {
       this.$emit('open', val);

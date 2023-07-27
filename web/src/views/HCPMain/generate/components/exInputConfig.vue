@@ -5,16 +5,16 @@
     v-model="isOpenEXInput"
     @onSwitch="handleSwitchMergeConfig"
     showEditYaml
-    :config="configStore.generate.ex_input"
+    :config="config.ex_input"
     @confirm="onConfirm"
   >
     <HBlock>
-      <div class="config-row" v-if="configStore.generate.ex_input">
+      <div class="config-row" v-if="config.ex_input">
         <HConfigInput
           label="cond image"
           tooltip="generate.ex_input.cond.image"
           required
-          v-model="configStore.generate.ex_input.cond.image"
+          v-model="config.ex_input.cond.image"
           type="file"
         />
       </div>
@@ -23,6 +23,7 @@
 </template>
 <script>
 import { default_data } from '@/constants/index';
+import { storeToRefs } from 'pinia';
 import useConfigStore from '@/store/configStore';
 import { cloneDeep, assign } from 'lodash-es';
 export default {
@@ -46,39 +47,27 @@ export default {
   },
   setup() {
     const configStore = useConfigStore();
-    return { configStore };
+    const { generate } = storeToRefs(configStore);
+    return { configStore, config: generate };
   },
   watch: {
     value: {
       handler: function (val) {
         if (val) {
-          // 必须修改上层才会触发响应
-          this.configStore.generate = {
-            ...this.configStore.generate,
-            ex_input: cloneDeep(this.cacheConfig)
-          };
+          this.configStore.updateGenerateByPath('ex_input', this.cacheConfig);
         } else {
           // 备份
-          this.cacheConfig = cloneDeep(this.configStore.generate.ex_input);
-          // 必须修改上层才会触发响应
-          this.configStore.generate = {
-            ...this.configStore.generate,
-            ex_input: null
-          };
+          this.cacheConfig = cloneDeep(this.config.ex_input || default_data.ex_input);
+          this.configStore.updateGenerateByPath('ex_input', null);
         }
         this.isOpenEXInput = val;
       },
       immediate: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.configStore.generate.ex_input
-    };
-  },
   methods: {
     onConfirm(value) {
-      assign(this.configStore.generate.ex_input, value);
+      assign(this.config.ex_input, value);
     },
     handleSwitchMergeConfig(val) {
       this.$emit('open', val);

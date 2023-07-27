@@ -8,11 +8,10 @@
       :title="title"
       :visible="dialogVisible"
       width="50%"
-      @open="open"
       :before-close="cancel"
       append-to-body
     >
-      <yaml-editor v-model="yaml_data" />
+      <yaml-editor v-if="dialogVisible" v-model="yaml_data" />
       <span slot="footer" class="dialog-footer">
         <el-button size="mini" @click="cancel">取 消</el-button>
         <el-button size="mini" type="primary" @click="save">确 定</el-button>
@@ -27,6 +26,9 @@ export default {
   name: 'EditYaml',
   components: { YamlEditor },
   props: {
+    value: {
+      type: [Object, Array]
+    },
     title: {
       type: String,
       default: '编辑yaml源数据'
@@ -38,15 +40,16 @@ export default {
       dialogVisible: false
     };
   },
-  inject: ['configValue'],
-  mounted() {
-    this.yaml_data = yaml.dump(this.configValue());
+  watch: {
+    value: {
+      handler: function (val) {
+        this.yaml_data = yaml.dump(val);
+      },
+      immediate: true,
+      deep: true
+    }
   },
   methods: {
-    open() {
-      console.log('open', this.configValue());
-      this.yaml_data = yaml.dump(this.configValue());
-    },
     cancel() {
       this.dialogVisible = false;
       this.$emit('cancel');

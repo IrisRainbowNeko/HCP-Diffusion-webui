@@ -3,7 +3,7 @@
     title="Infer_args Config"
     ref="collapseRef"
     showEditYaml
-    :config="config"
+    :config="config.infer_args"
     @confirm="onConfirm"
   >
     <HBlock>
@@ -14,7 +14,7 @@
           :min="128"
           :max="2048"
           :step="8"
-          v-model="configStore.generate.infer_args.width"
+          v-model="config.infer_args.width"
         />
         <HConfigRange
           label="height"
@@ -22,7 +22,7 @@
           :min="128"
           :max="2048"
           :step="8"
-          v-model="configStore.generate.infer_args.height"
+          v-model="config.infer_args.height"
         />
       </div>
       <div class="config-row">
@@ -32,7 +32,7 @@
           :min="1"
           :max="20"
           :step="0.5"
-          v-model="configStore.generate.infer_args.guidance_scale"
+          v-model="config.infer_args.guidance_scale"
         />
       </div>
       <div class="config-row">
@@ -43,7 +43,7 @@
           :max="200"
           :step="1"
           integer
-          v-model="configStore.generate.infer_args.num_inference_steps"
+          v-model="config.infer_args.num_inference_steps"
         />
       </div>
       <div class="config-row" v-if="isi2i">
@@ -61,47 +61,37 @@
 </template>
 <script>
 import { default_data } from '@/constants/index';
+import { storeToRefs } from 'pinia';
 import useConfigStore from '@/store/configStore';
 import { cloneDeep, assign } from 'lodash-es';
 export default {
   name: 'InferArgsConfig',
   setup() {
     const configStore = useConfigStore();
-    return { configStore };
+    const { generate } = storeToRefs(configStore);
+    return { configStore, config: generate };
   },
   computed: {
     isi2i() {
-      return (
-        this.configStore.generate.condition && this.configStore.generate.condition.type === 'i2i'
-      );
-    },
-    config() {
-      return cloneDeep(this.configStore.generate.infer_args);
+      return this.config.condition && this.config.condition.type === 'i2i';
     }
   },
   watch: {
-    'configStore.generate.condition.type': {
+    'config.condition.type': {
       handler: function (val) {
         if (val !== 'i2i') {
-          this.configStore.generate.infer_args.strength = null;
+          this.config.infer_args.strength = null;
         } else {
-          this.configStore.generate.infer_args.strength = cloneDeep(
-            default_data.infer_args.strength
-          );
+          this.config.infer_args.strength = cloneDeep(default_data.infer_args.strength);
         }
       },
       deep: true,
       immediate: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.configStore.generate.infer_args
-    };
-  },
   methods: {
     onConfirm(value) {
-      assign(this.configStore.generate.infer_args, value);
+      assign(this.config.infer_args, value);
     }
   }
 };

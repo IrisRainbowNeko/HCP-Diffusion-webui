@@ -121,6 +121,7 @@ import {
   stopGenerate,
   getGenerateConfig
 } from '@/api/generate';
+import { watch } from 'vue';
 import OtherConfig from './components/otherConfig.vue';
 import ConditionConfig from './components/conditionConfig.vue';
 import EXInputConfig from './components/exInputConfig.vue';
@@ -131,6 +132,7 @@ import MergeConfig from './components/mergeConfig.vue';
 import { getGenerateDir } from '@/api/file';
 import { handleOptions, validateParams } from '@/utils/index';
 import { merge, cloneDeep } from 'lodash-es';
+import { storeToRefs } from 'pinia';
 import useSnStore from '@/store/snStore';
 import useConfigStore from '@/store/configStore';
 const STATUS = {
@@ -180,6 +182,9 @@ export default {
   setup() {
     const snStore = useSnStore();
     const configStore = useConfigStore();
+    const { generate } = storeToRefs(configStore);
+    // 任意更新储存到localstorage
+    watch(generate, (state) => configStore.storageGenerate(state), { deep: true });
     return { snStore, configStore };
   },
   watch: {
@@ -191,7 +196,11 @@ export default {
     }
   },
   mounted() {
-    this.initDefaultData();
+    if (!this.configStore.storedGenerate) {
+      this.initDefaultData();
+    } else {
+      this.initDefaultView(this.configStore.storedGenerate);
+    }
   },
   methods: {
     async handleGenerate() {
@@ -303,15 +312,19 @@ export default {
       // 保留模型
       newInfo.pretrained_model = this.configStore.generate.pretrained_model;
 
+      this.initDefaultView(newInfo);
+    },
+
+    initDefaultView(info) {
       // 控制开关
-      this.isOpenConditionConfig = !!newInfo.condition;
-      this.isOpenEXInput = !!newInfo.ex_input;
-      this.isOpenMergeConfig = !!newInfo.merge;
-      this.isOpenOffload = !!newInfo.offload;
+      this.isOpenConditionConfig = !!info.condition;
+      this.isOpenEXInput = !!info.ex_input;
+      this.isOpenMergeConfig = !!info.merge;
+      this.isOpenOffload = !!info.offload;
       // 先打开折叠再更新数据，否则将不会渲染页面。
       this.$nextTick(() => {
         // 触发全局相应
-        this.configStore.generate = { ...newInfo };
+        this.configStore.generate = { ...info };
       });
     },
 
