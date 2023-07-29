@@ -68,11 +68,6 @@ export default {
       immediate: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.local_config
-    };
-  },
   methods: {
     handleUnetCollapseChange(val) {
       if (val && !this.local_config) {

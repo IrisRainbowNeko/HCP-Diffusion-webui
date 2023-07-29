@@ -29,7 +29,7 @@
 </template>
 <script>
 import { generateDatasetAction, getDatesetAction } from '@/api/generate';
-import { mapGetters } from 'vuex';
+import useSnStore from '@/store/snStore';
 export default {
   name: 'HDataset',
   props: {
@@ -48,8 +48,9 @@ export default {
       list: []
     };
   },
-  computed: {
-    ...mapGetters(['datasetSn'])
+  setup() {
+    const snStore = useSnStore();
+    return { snStore };
   },
   created() {
     this.fetchData();
@@ -72,7 +73,7 @@ export default {
       })
         .then((result) => {
           const { sn } = result;
-          this.$store.commit('setDatasetSnSn', sn);
+          this.snStore.setDatasetSnSn(sn);
           this.$message.success('generate dataset is running, please waiting...');
         })
         .catch(() => {
@@ -83,7 +84,7 @@ export default {
         });
     },
     fetchData() {
-      getDatesetAction(this.datasetSn).then((res) => {
+      getDatesetAction(this.snStore.datasetSn).then((res) => {
         this.list = res.prompt_file;
       });
     }

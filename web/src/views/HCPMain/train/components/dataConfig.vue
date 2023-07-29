@@ -13,7 +13,7 @@
     @next="handlerNextDataset"
     showEditYaml
     :config="local_config"
-    @confirm="confirmYamlEditY"
+    @confirm="(value) => (local_config = value)"
   >
     <HBlock>
       <!-- dataset1 -->
@@ -39,7 +39,12 @@
               @onDelete="deleteDataset(dataset)"
               showEditYaml
               :config="local_config[dataset]"
-              @confirm="(value) => this.$set(this.local_config, dataset, value)"
+              @confirm="
+                (value) => {
+                  debugger;
+                  this.$set(this.local_config, dataset, value);
+                }
+              "
             >
               <div class="config-row">
                 <HConfigInput
@@ -435,7 +440,6 @@
 </template>
 <script>
 import EditWordName from './editWordName.vue';
-import { mapGetters } from 'vuex';
 import { handleOptions } from '@/utils/index';
 import { getTrain } from '@/api/train';
 import {
@@ -445,6 +449,7 @@ import {
   bucket__target__options,
   tag_transformsConfigKeysOptions
 } from '@/constants/index';
+import useSnStore from '@/store/snStore';
 export default {
   name: 'TokenizerPtConfig',
   components: {
@@ -459,6 +464,10 @@ export default {
       type: Number,
       default: 1000
     }
+  },
+  setup() {
+    const snStore = useSnStore();
+    return { snStore };
   },
   watch: {
     local_config: {
@@ -484,7 +493,6 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['trainSn']),
     getDatasetName({ datasetList }) {
       const length = datasetList.length;
       let datasetName = `dataset${length + 1}`;
@@ -507,17 +515,12 @@ export default {
       return handleOptions(tag_transformsConfigKeysOptions);
     }
   },
-  provide() {
-    return {
-      configValue: () => this.local_config[this.datasetList[this.currentIndex]]
-    };
-  },
   created() {
     this.initData();
   },
   methods: {
     async initData() {
-      const result = await getTrain(this.trainSn).catch((err) => {
+      const result = await getTrain(this.snStore.train_sn).catch((err) => {
         this.$message.error(err);
       });
       if (!result) return;

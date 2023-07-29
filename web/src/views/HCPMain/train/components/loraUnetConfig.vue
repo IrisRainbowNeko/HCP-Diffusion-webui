@@ -94,11 +94,6 @@ export default {
       isOpen: this.isOpenLoraUnetCollapse
     };
   },
-  provide() {
-    return {
-      configValue: () => this.local_config
-    };
-  },
   watch: {
     isOpen(val) {
       this.$emit('onSwitch', val);

@@ -108,7 +108,7 @@ import HPt from './pt/index.vue';
 
 import { getGenerateDir } from '@/api/file';
 import { handleOptions } from '@/utils/index';
-import { mapState } from 'vuex';
+import useSnStore from '@/store/snStore';
 import copy from 'copy-to-clipboard';
 import { STATUS_TYPE } from '@/constants/index';
 
@@ -140,13 +140,13 @@ export default {
       train_yaml_template_sn: ''
     };
   },
-  computed: {
-    ...mapState({
-      generateSnSn: (state) => state.generate_sn,
-      trainSnSn: (state) => state.train_sn
-    })
+  setup() {
+    const snStore = useSnStore();
+    return { snStore };
   },
   created() {
+    this.generate_yaml_template_sn = this.snStore.generate_sn;
+    this.train_yaml_template_sn = this.snStore.train_sn;
     this.activeName = this.$route.query.activeName || 'generate';
   },
   methods: {
@@ -180,7 +180,7 @@ export default {
     },
     getPretrainedMode({ options, pretrained_model, server_yaml_file, files, valueFiles }) {
       this.options = options;
-      this.pretrained_model = pretrained_model;
+      this.pretrained_model = pretrained_model || this.pretrained_model;
       this[files] = server_yaml_file.map((item) => {
         return {
           label: item.label,
@@ -195,11 +195,11 @@ export default {
       const { activeName } = this;
       const ySn = this[files] === '-1' ? '' : this[files];
       if (activeName === 'generate') {
-        this.$store.commit('setGenerateSnSn', ySn);
+        this.snStore.setGenerateSnSn(ySn);
         this.$refs.generateComponent.initDefaultData();
       }
       if (activeName === 'train') {
-        this.$store.commit('setTrainSnSn', ySn);
+        this.snStore.setTrainSnSn(ySn);
         this.$refs.trainComponent.initDefaultData();
       }
     },

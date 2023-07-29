@@ -111,11 +111,6 @@ export default {
       return `controlnet${length + 1}`;
     }
   },
-  provide() {
-    return {
-      configValue: () => this.local_config
-    };
-  },
   methods: {
     handlePluginUnetCollapseChange(val) {
       if (val && !this.local_config) {

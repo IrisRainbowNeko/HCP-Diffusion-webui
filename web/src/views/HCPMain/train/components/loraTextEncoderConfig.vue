@@ -103,11 +103,6 @@ export default {
       immediate: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.local_config
-    };
-  },
   methods: {
     handleLoraTextEncoderCollapseChange(val) {
       if (val && !this.local_config) {

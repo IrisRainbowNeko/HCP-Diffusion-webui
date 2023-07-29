@@ -3,6 +3,7 @@
     title="Train Config"
     tooltip="train.trainTip"
     showEditYaml
+    :config="local_config"
     @confirm="(value) => (local_config = value)"
   >
     <HBlock>
@@ -290,11 +291,6 @@ export default {
       deep: true,
       immediate: true
     }
-  },
-  provide() {
-    return {
-      configValue: () => this.local_config
-    };
   },
   created() {
     this.initData();

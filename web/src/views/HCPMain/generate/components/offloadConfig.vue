@@ -4,28 +4,25 @@
     showSwitch
     v-model="isOpenOffloadConfig"
     showEditYaml
-    :config="config"
-    @confirm="
-      (value) => {
-        config = JSON.parse(JSON.stringify(value));
-      }
-    "
+    @onSwitch="handleSwitchOffloadConfig"
+    :config="config.offload"
+    @confirm="onConfirm"
   >
     <HBlock>
-      <template v-if="config">
+      <template v-if="config.offload">
         <div class="config-row">
-          <el-checkbox v-model="config.vae_cpu">vae_cpu</el-checkbox>
+          <el-checkbox v-model="config.offload.vae_cpu">vae_cpu</el-checkbox>
         </div>
         <div class="config-row">
           <HConfigInput
             label="max_VRAM"
             tooltip="generate.offload.max_VRAM"
-            v-model="config.max_VRAM"
+            v-model="config.offload.max_VRAM"
           />
           <HConfigInput
             label="max_RAM"
             tooltip="generate.offload.max_RAM"
-            v-model="config.max_RAM"
+            v-model="config.offload.max_RAM"
           />
         </div>
       </template>
@@ -34,66 +31,54 @@
 </template>
 <script>
 import { default_data } from '@/constants/index';
+import { storeToRefs } from 'pinia';
+import useConfigStore from '@/store/configStore';
+import { assign, cloneDeep } from 'lodash-es';
 export default {
   name: 'OffloadConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
+    value: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
       isOpenOffloadConfig: false,
-
       // 备份 params.offload
-      cacheConfig: JSON.parse(JSON.stringify(default_data.offload)),
-
-      config: null
+      cacheConfig: cloneDeep(default_data.offload)
     };
+  },
+  setup() {
+    const configStore = useConfigStore();
+    const { generate } = storeToRefs(configStore);
+    return { configStore, config: generate };
   },
   watch: {
-    isOpenOffloadConfig: {
+    value: {
       handler: function (val) {
         if (val) {
-          this.config = JSON.parse(JSON.stringify(this.cacheConfig));
-          if (!this.config && !this.params.config) {
-            this.config = JSON.parse(JSON.stringify(default_data.offload));
-          }
+          this.configStore.updateGenerateByPath('offload', this.cacheConfig);
         } else {
           // 备份
-          this.cacheConfig = JSON.parse(JSON.stringify(this.config));
-          this.config = null;
+          this.cacheConfig = cloneDeep(this.config.offload || default_data.offload);
+          this.configStore.updateGenerateByPath('offload', null);
         }
+        this.isOpenOffloadConfig = val;
       },
       immediate: true
-    },
-    config: {
-      handler: function (value) {
-        this.$emit('updateConfig', {
-          field: 'offload',
-          value
-        });
-      },
-      deep: true
     }
   },
-  provide() {
-    return {
-      configValue: () => this.config
-    };
-  },
-  created() {
-    this.cacheConfig = JSON.parse(JSON.stringify(default_data.offload));
-  },
   methods: {
-    initConfig(info) {
-      this.config = JSON.parse(JSON.stringify(info.offload));
-
-      this.isOpenOffloadConfig = !!this.config;
+    onConfirm(value) {
+      assign(this.config.offload, value);
     },
-    getConfig() {
-      return this.config;
+    handleSwitchOffloadConfig(val) {
+      this.$emit('open', val);
     }
   }
 };
