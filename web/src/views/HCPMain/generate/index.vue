@@ -120,9 +120,10 @@ import OffloadConfig from './components/offloadConfig.vue';
 import InferArgsConfig from './components/inferArgsConfig.vue';
 import NewComponentsConfig from './components/newComponentsConfig.vue';
 import MergeConfig from './components/mergeConfig.vue';
-import { handleOptions, validateParams } from '@/utils/index';
+import { validateParams } from '@/utils/index';
 import { merge, cloneDeep, isNil, isEmpty } from 'lodash-es';
 import { storeToRefs } from 'pinia';
+import useCommonStore from '@/store/commonStore';
 import useSnStore from '@/store/snStore';
 import useGenerateStore from '@/store/generateStore';
 const STATUS = {
@@ -166,12 +167,13 @@ export default {
     };
   },
   setup() {
+    const commonStore = useCommonStore();
     const snStore = useSnStore();
     const generateStore = useGenerateStore();
     const { generate } = storeToRefs(generateStore);
     // 任意更新储存到localstorage
     watch(generate, (state) => generateStore.storageGenerate(state), { deep: true });
-    return { snStore, generateStore, config: generate };
+    return { commonStore, snStore, generateStore, config: generate };
   },
   watch: {
     pretrained_model: {
@@ -206,7 +208,7 @@ export default {
     },
     // 中断
     async handleInterrupt() {
-      const result = await stopGenerate(this.snStore.generate_sn).catch(() => {
+      const result = await stopGenerate(this.snStore.generateSn).catch(() => {
         this.$message.error('interrupt failure');
       });
       if (!result) return;
@@ -223,7 +225,7 @@ export default {
     },
     // 轮询获取进度
     async getProgress() {
-      const result = await getGenerateProgress(this.snStore.generate_sn).catch(() => {
+      const result = await getGenerateProgress(this.snStore.generateSn).catch(() => {
         this.$message.error('fetch generate progress failed');
       });
       if (!result) return;
@@ -245,23 +247,29 @@ export default {
     },
 
     async initDefaultData() {
-      const result = await getGenerateConfig(this.snStore.generate_sn).catch(() => {
+      const result = await getGenerateConfig(this.snStore.generateSn).catch(() => {
         this.$message.error('fetch setting failed');
       });
       if (!result) return;
+
       const {
-        info,
-        is_pending,
-        progress,
-        images = [],
+        pretrained_mode = [],
+        server_yaml_file = [],
         merge_group_lora_path = [],
         merge_group_part_path = [],
         merge_group_plugin_controlnet1_path = [],
-        pretrained_mode = [],
-        server_yaml_file = [],
         pretrained_model_name_or_path = []
       } = result;
 
+      this.generateStore.generate_server_yaml_file = server_yaml_file;
+      this.generateStore.merge_group_lora_path = merge_group_lora_path;
+      this.generateStore.merge_group_part_path = merge_group_part_path;
+      this.generateStore.merge_group_plugin_controlnet1_path = merge_group_plugin_controlnet1_path;
+      this.generateStore.pretrained_model_name_or_path = pretrained_model_name_or_path;
+      this.commonStore.pretrained_model = pretrained_mode;
+
+      const { sn, info, is_pending, progress, images = [] } = result;
+      this.snStore.setGenerateSnSn(sn);
       if (images.length) {
         this.imgs = images;
       }
@@ -270,31 +278,14 @@ export default {
         this.progress = progress;
         this.getProgress();
       }
-      this.generateStore.merge_group_lora_path_options = handleOptions(merge_group_lora_path);
-      this.generateStore.merge_group_part_path_options = handleOptions(merge_group_part_path);
-      this.generateStore.merge_group_plugin_controlnet1_path_options = handleOptions(
-        merge_group_plugin_controlnet1_path
-      );
-      this.generateStore.pretrained_model_name_or_path_options = handleOptions(
-        pretrained_model_name_or_path
-      );
-      const { pretrained_model } = info || {};
-      this.$emit('getPretrainedMode', {
-        options: handleOptions(pretrained_mode),
-        pretrained_model,
-        server_yaml_file,
-        files: 'generate_server_yaml_file_options',
-        valueFiles: 'generate_yaml_template_sn'
-      });
 
       const newInfo = merge(cloneDeep(default_generate_data), info);
+      // 保留模型
+      newInfo.pretrained_model = this.config.pretrained_model;
 
       this.$refs.inferArgsComponent.initDefaultData(newInfo);
       this.$refs.newComponentComponent.initDefaultData(newInfo);
       this.$refs.mergeComponent.initDefaultData(newInfo);
-
-      // 保留模型
-      newInfo.pretrained_model = this.config.pretrained_model;
 
       this.initDefaultView(newInfo);
     },

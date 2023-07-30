@@ -14,14 +14,27 @@ const useGenerateStore = defineStore('generateStore', {
   state: () => ({
     generate:
       JSON.parse(localStorage.getItem(generateStorageKey)) || cloneDeep(default_generate_data),
-    merge_group_lora_path_options: [],
-    merge_group_part_path_options: [],
-    merge_group_plugin_controlnet1_path_options: [],
-    pretrained_model_name_or_path_options: []
+    generate_server_yaml_file: [],
+    merge_group_lora_path: [],
+    merge_group_part_path: [],
+    merge_group_plugin_controlnet1_path: [],
+    pretrained_model_name_or_path: []
   }),
   getters: {
     storedGenerate() {
       return JSON.parse(localStorage.getItem(generateStorageKey));
+    },
+    generate_server_yaml_file_options() {
+      return handleOptions(this.generate_server_yaml_file);
+    },
+    merge_group_part_path_options() {
+      return handleOptions(this.merge_group_part_path);
+    },
+    merge_group_plugin_controlnet1_path_options() {
+      return handleOptions(this.merge_group_plugin_controlnet1_path);
+    },
+    pretrained_model_name_or_path_options() {
+      return handleOptions(this.pretrained_model_name_or_path);
     }
   },
   actions: {
@@ -36,13 +49,13 @@ const useGenerateStore = defineStore('generateStore', {
       const { files = [] } = result;
       switch (field) {
         case merge_group_lora_path_key:
-          this.merge_group_lora_path_options = handleOptions(files);
+          this.merge_group_lora_path = files;
           break;
         case merge_group_part_path_key:
-          this.merge_group_part_path_options = handleOptions(files);
+          this.merge_group_part_path = files;
           break;
         case merge_group_plugin_controlnet1_path_key:
-          this.merge_group_plugin_controlnet1_path_options = handleOptions(files);
+          this.merge_group_plugin_controlnet1_path = files;
           break;
       }
     }

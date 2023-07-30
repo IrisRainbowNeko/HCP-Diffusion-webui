@@ -146,8 +146,8 @@ import {
 import { watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { getTrain, updateTrain, getTrainStatus, stopTrain } from '@/api/train';
-import { handleOptions } from '@/utils/index';
 import { merge, isNil, isEmpty, cloneDeep } from 'lodash-es';
+import useCommonStore from '@/store/commonStore';
 import useSnStore from '@/store/snStore';
 import useTrainStore from '@/store/trainStore';
 export default {
@@ -204,12 +204,13 @@ export default {
     };
   },
   setup() {
+    const commonStore = useCommonStore();
     const snStore = useSnStore();
     const trainStore = useTrainStore();
     const { train } = storeToRefs(trainStore);
     // 任意更新储存到localstorage
     watch(train, (state) => trainStore.storageTrain(state), { deep: true });
-    return { snStore, trainStore, config: train };
+    return { commonStore, snStore, trainStore, config: train };
   },
   mounted() {
     // if (!this.trainStore.storedTrain) {
@@ -251,7 +252,7 @@ export default {
     },
     // 轮询获取进度
     async getTrainStatus() {
-      const result = await getTrainStatus({ sn: this.snStore.train_sn }).catch(() => {
+      const result = await getTrainStatus({ sn: this.snStore.trainSn }).catch(() => {
         this.$message.error('get training progress failed');
       });
       if (!result) return;
@@ -274,35 +275,36 @@ export default {
       return `data_source${length + 1}`;
     },
     async initDefaultData() {
-      const result = await getTrain(this.snStore.train_sn).catch((err) => {
+      const result = await getTrain(this.snStore.trainSn).catch((err) => {
         this.$message.error(err);
       });
       if (!result) return;
 
-      const { pretrained_model_name_or_path = [], tokenizer_pt_train_name = [] } = result;
-      this.trainStore.pretrained_model_name_or_path_options = handleOptions(
-        pretrained_model_name_or_path
-      );
-      this.trainStore.tokenizer_pt_train_name_options = handleOptions(tokenizer_pt_train_name);
+      const {
+        pretrained_mode = [],
+        server_yaml_file = [],
+        pretrained_model_name_or_path = [],
+        tokenizer_pt_train_name = []
+      } = result;
+      this.commonStore.pretrained_model = pretrained_mode;
+      this.trainStore.train_server_yaml_file = server_yaml_file;
+      this.trainStore.pretrained_model_name_or_path = pretrained_model_name_or_path;
+      this.trainStore.tokenizer_pt_train_name = tokenizer_pt_train_name;
 
-      const { info, is_pending, progress, pretrained_mode = [], server_yaml_file = [] } = result;
-      const newInfo = merge(cloneDeep(default_train_data), info);
-      if (!isEmpty(info)) {
-        this.$refs.dataComponent.initDefaultData(newInfo);
-      }
+      const { sn, info, is_pending, progress } = result;
+      this.snStore.setTrainSnSn(sn);
       this.disabled = is_pending;
       this.progress = progress;
       if (is_pending) {
         this.getTrainStatus();
       }
-      this.$emit('getPretrainedMode', {
-        options: handleOptions(pretrained_mode),
-        server_yaml_file,
-        files: 'train_server_yaml_file_options',
-        valueFiles: 'train_yaml_template_sn'
-      });
 
+      const newInfo = merge(cloneDeep(default_train_data), info);
+      // 保留模型
       newInfo.pretrained_model = this.config.pretrained_model;
+      if (!isEmpty(info)) {
+        this.$refs.dataComponent.initDefaultData(newInfo);
+      }
       this.initDefaultView(newInfo);
     },
     initDefaultView(info) {

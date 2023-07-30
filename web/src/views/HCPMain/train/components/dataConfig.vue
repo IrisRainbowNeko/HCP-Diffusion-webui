@@ -93,7 +93,7 @@
                     tooltip="train.data.dataset.bucket._target_"
                     :options="bucket__target__options"
                     v-model="config.data[dataset].bucket._target_"
-                    @onChange="(e) => handlerBucketTargetChange(dataset, e)"
+                    @onChange="(e) => handlerBucketTargetChange(config, dataset, e)"
                   />
                   <template
                     v-if="
@@ -246,7 +246,9 @@
                             :options="imgTransformsConfig"
                             v-model="item._target_"
                             tooltip="train.data.dataset.source.data_source.image_transforms._target_"
-                            @onChange="(e) => handlerChangeImgTransforms(dataset, source, index, e)"
+                            @onChange="
+                              (e) => handlerChangeImgTransforms(config, dataset, source, index, e)
+                            "
                           />
                           <template
                             v-if="
@@ -383,7 +385,13 @@
                             tooltip="train.data.dataset.source.data_source.tag_transforms._target_"
                             @onChange="
                               (e) =>
-                                handlerChangeTagTransforms(dataset, source, transforms_index, e)
+                                handlerChangeTagTransforms(
+                                  config,
+                                  dataset,
+                                  source,
+                                  transforms_index,
+                                  e
+                                )
                             "
                           />
                           <template
@@ -517,7 +525,7 @@ export default {
       if (isEmpty(newInfo.data)) return;
       forEach(newInfo.data, (datasetValue, datasetKey) => {
         // bucket init
-        this.handlerBucketTargetChange(datasetKey, datasetValue.bucket._target_);
+        this.handlerBucketTargetChange(newInfo, datasetKey, datasetValue.bucket._target_);
         forEach(datasetValue.source, (dataSourceValue, dataSourceKey) => {
           // image transforms init
           const imageTransforms = dataSourceValue.image_transforms;
@@ -532,6 +540,7 @@ export default {
           const transformsOfImage = imageTransforms.transforms;
           forEach(transformsOfImage, (transformValue, transformIndex) => {
             this.handlerChangeImgTransforms(
+              newInfo,
               datasetKey,
               dataSourceKey,
               transformIndex,
@@ -551,6 +560,7 @@ export default {
           const transformsOfTag = dataSourceValue.tag_transforms.transforms;
           forEach(transformsOfTag, (transformValue, transformIndex) => {
             this.handlerChangeTagTransforms(
+              newInfo,
               datasetKey,
               dataSourceKey,
               transformIndex,
@@ -561,8 +571,8 @@ export default {
       });
     },
 
-    handlerBucketTargetChange(dataset, e) {
-      const bucket = this.config.data[dataset].bucket;
+    handlerBucketTargetChange(config, dataset, e) {
+      const bucket = config.data[dataset].bucket;
       if (e === 'hcpdiff.data.bucket.RatioBucket.from_files') {
         if (bucket.target_size) this.$delete(bucket, 'target_size');
         if (!bucket.target_area) this.$set(bucket, 'target_area', cloneDeep(default_target_area));
@@ -574,8 +584,8 @@ export default {
       }
     },
 
-    handlerChangeImgTransforms(dataset, source, index, key) {
-      const transforms = this.config.data[dataset].source[source].image_transforms.transforms;
+    handlerChangeImgTransforms(config, dataset, source, index, key) {
+      const transforms = config.data[dataset].source[source].image_transforms.transforms;
       const transform = transforms[index];
       if (transform._target_) {
         const newConfig = cloneDeep(img_transformsConfigKeys[key]);
@@ -586,8 +596,8 @@ export default {
       }
     },
 
-    handlerChangeTagTransforms(dataset, source, index, key) {
-      const transform = this.config.data[dataset].source[source].tag_transforms.transforms[index];
+    handlerChangeTagTransforms(config, dataset, source, index, key) {
+      const transform = config.data[dataset].source[source].tag_transforms.transforms[index];
       if (key) {
         switch (key) {
           case 'hcpdiff.utils.caption_tools.TagShuffle':
