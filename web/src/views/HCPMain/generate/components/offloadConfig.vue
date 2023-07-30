@@ -4,9 +4,9 @@
     showSwitch
     v-model="isOpenOffloadConfig"
     showEditYaml
-    @onSwitch="handleSwitchOffloadConfig"
     :config="config.offload"
-    @confirm="onConfirm"
+    @onSwitch="(e) => $emit('open', e)"
+    @confirm="(value) => $set(config, 'offload', value)"
   >
     <HBlock>
       <template v-if="config.offload">
@@ -30,10 +30,10 @@
   </h-collapse>
 </template>
 <script>
-import { default_data } from '@/constants/index';
+import { default_generate_data } from '@/constants/index';
 import { storeToRefs } from 'pinia';
-import useConfigStore from '@/store/configStore';
-import { assign, cloneDeep } from 'lodash-es';
+import useGenerateStore from '@/store/generateStore';
+import { cloneDeep } from 'lodash-es';
 export default {
   name: 'OffloadConfig',
   model: {
@@ -50,35 +50,27 @@ export default {
     return {
       isOpenOffloadConfig: false,
       // 备份 params.offload
-      cacheConfig: cloneDeep(default_data.offload)
+      cacheConfig: cloneDeep(default_generate_data.offload)
     };
   },
   setup() {
-    const configStore = useConfigStore();
-    const { generate } = storeToRefs(configStore);
-    return { configStore, config: generate };
+    const generateStore = useGenerateStore();
+    const { generate } = storeToRefs(generateStore);
+    return { generateStore, config: generate };
   },
   watch: {
     value: {
       handler: function (val) {
         if (val) {
-          this.configStore.updateGenerateByPath('offload', this.cacheConfig);
+          this.$set(this.config, 'offload', this.cacheConfig);
         } else {
           // 备份
-          this.cacheConfig = cloneDeep(this.config.offload || default_data.offload);
-          this.configStore.updateGenerateByPath('offload', null);
+          this.cacheConfig = cloneDeep(this.config.offload || default_generate_data.offload);
+          this.$set(this.config, 'offload', null);
         }
         this.isOpenOffloadConfig = val;
       },
       immediate: true
-    }
-  },
-  methods: {
-    onConfirm(value) {
-      assign(this.config.offload, value);
-    },
-    handleSwitchOffloadConfig(val) {
-      this.$emit('open', val);
     }
   }
 };

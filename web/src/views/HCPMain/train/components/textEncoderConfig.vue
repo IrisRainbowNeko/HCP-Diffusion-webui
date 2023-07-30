@@ -5,15 +5,15 @@
     tooltip="train.text_encoderTip"
     :showAdd="isOpen"
     v-model="isOpen"
-    @onSwitch="handleTextEncoderCollapseChange"
-    @add="addTextEncoder"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.text_encoder"
+    @onSwitch="(e) => $emit('open', e)"
+    @add="addTextEncoder"
+    @confirm="(value) => (config.text_encoder = value)"
   >
     <div
       class="block-style-item"
-      v-for="(item, unet_index) in local_config || []"
+      v-for="(item, unet_index) in config.text_encoder || []"
       :key="`${unet_index}-${Math.random()}`"
     >
       <HBlock :h-index="2" label=" " show-icon @onDelete="deleteTextEncoder(unet_index)">
@@ -40,58 +40,61 @@
   </h-collapse>
 </template>
 <script>
+import { storeToRefs } from 'pinia';
+import { cloneDeep } from 'lodash-es';
+import useTrainStore from '@/store/trainStore';
 import { default_train_data } from '@/constants/index';
 export default {
   name: 'TextEncoderConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
-    },
-    isOpenTextEncoderCollapse: {
+    value: {
       type: Boolean,
       default: false
     }
   },
   data() {
     return {
-      local_config: this.params.text_encoder,
-      isOpen: this.isOpenTextEncoderCollapse
+      isOpen: false,
+      cacheConfig: cloneDeep(default_train_data.text_encoder)
     };
   },
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
+  },
   watch: {
-    isOpen(val) {
-      this.$emit('onSwitch', val);
-    },
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
+    value(val) {
+      if (val) {
+        this.$set(this.config, 'text_encoder', this.cacheConfig);
+        if (!this.config.text_encoder || this.config.text_encoder.length == 0) {
+          this.addTextEncoder();
+        }
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(this.config.text_encoder || default_train_data.text_encoder);
+        this.$set(this.config, 'text_encoder', null);
+      }
+      this.isOpen = val;
     }
   },
   methods: {
-    handleTextEncoderCollapseChange(val) {
-      if (val && !this.local_config) {
-        this.addTextEncoder();
-      }
-    },
     addTextEncoder() {
-      if (!this.local_config) {
-        this.local_config = [];
+      if (!this.config.text_encoder) {
+        this.config.text_encoder = [];
       }
-      this.local_config.push(JSON.parse(JSON.stringify(default_train_data.text_encoder[0])));
+      this.config.text_encoder.push(cloneDeep(default_train_data.text_encoder[0]));
     },
     deleteTextEncoder(index) {
-      this.local_config.splice(index, 1);
-      if (this.local_config && this.local_config.length === 0) {
-        this.local_config = null;
+      this.config.text_encoder.splice(index, 1);
+      if (this.config.text_encoder && this.config.text_encoder.length === 0) {
+        this.config.text_encoder = null;
         this.isOpen = false;
       }
-    },
-    updateData() {
-      this.$emit('updateData', this.local_config);
     }
   }
 };

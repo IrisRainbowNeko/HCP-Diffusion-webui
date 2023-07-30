@@ -5,17 +5,17 @@
     tooltip="train.unetTip"
     :showAdd="isOpen"
     v-model="isOpen"
-    @onSwitch="handleUnetCollapseChange"
-    @add="addUnet"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.unet"
+    @onSwitch="(e) => $emit('open', e)"
+    @add="addUnet"
+    @confirm="(value) => (config.unet = value)"
   >
     <HBlock
       :h-index="2"
       label=" "
       show-icon
-      v-for="(item, unet_index) in local_config || []"
+      v-for="(item, unet_index) in config.unet || []"
       :key="`${unet_index}-${Math.random()}`"
       @onDelete="deleteUnet(unet_index)"
     >
@@ -41,54 +41,61 @@
   </h-collapse>
 </template>
 <script>
+import { storeToRefs } from 'pinia';
+import { cloneDeep } from 'lodash-es';
+import useTrainStore from '@/store/trainStore';
 import { default_train_data } from '@/constants/index';
 export default {
   name: 'UnetConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
+    value: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
-      local_config: this.params.unet,
-      isOpen: this.isOpenUnetCollapse
+      isOpen: false,
+      cacheConfig: cloneDeep(default_train_data.unet)
     };
   },
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
+  },
   watch: {
-    isOpen(val) {
-      this.$emit('onSwitch', val);
-    },
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
+    value(val) {
+      if (val) {
+        this.$set(this.config, 'unet', this.cacheConfig);
+        if (!this.config.unet || this.config.unet.length == 0) {
+          this.addUnet();
+        }
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(this.config.unet || default_train_data.unet);
+        this.$set(this.config, 'unet', null);
+      }
+      this.isOpen = val;
     }
   },
   methods: {
-    handleUnetCollapseChange(val) {
-      if (val && !this.local_config) {
-        this.addUnet();
-      }
-    },
     addUnet() {
-      if (!this.local_config) {
-        this.local_config = [];
+      if (!this.config.unet) {
+        this.config.unet = [];
       }
-      this.local_config.push(JSON.parse(JSON.stringify(default_train_data.unet[0])));
+      this.config.unet.push(cloneDeep(default_train_data.unet[0]));
     },
     deleteUnet(unet_index) {
-      this.local_config.splice(unet_index, 1);
-      if (this.local_config && this.local_config.length === 0) {
-        this.local_config = null;
+      this.config.unet.splice(unet_index, 1);
+      if (this.config.unet && this.config.unet.length === 0) {
+        this.config.unet = null;
         this.isOpen = false;
       }
-    },
-    updateData() {
-      this.$emit('updateData', this.local_config);
     }
   }
 };

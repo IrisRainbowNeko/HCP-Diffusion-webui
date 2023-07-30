@@ -33,7 +33,7 @@
             tooltip="train.exp_dir"
             style="font-size: 13px"
             disabled
-            v-model="params.exp_dir"
+            v-model="config.exp_dir"
           />
         </div>
         <div class="config-row">
@@ -42,7 +42,7 @@
             style="font-size: 13px"
             :options="dtype_options"
             tooltip="train.mixed_precision"
-            v-model="params.mixed_precision"
+            v-model="config.mixed_precision"
           />
         </div>
         <div class="config-row">
@@ -51,7 +51,7 @@
             label="seed"
             style="font-size: 13px"
             :min="1"
-            v-model="params.seed"
+            v-model="config.seed"
           />
         </div>
         <div class="config-row">
@@ -60,11 +60,11 @@
             tooltip="train.ckpt_type"
             style="font-size: 13px"
             :options="ckpt_type_options"
-            v-model="params.ckpt_type"
+            v-model="config.ckpt_type"
           />
         </div>
         <div class="config-row">
-          <el-checkbox v-model="params.allow_tf32">allow_tf32</el-checkbox>
+          <el-checkbox v-model="config.allow_tf32">allow_tf32</el-checkbox>
         </div>
       </HBlock>
       <HBlock
@@ -84,79 +84,43 @@
       <el-tabs v-model="tabName" class="outerWrapperShadow" ref="tabRef">
         <!-- model -->
         <el-tab-pane label="model" name="model">
-          <ModelConfig
-            :params="params"
-            @updateData="(value) => this.$set(this.params, 'model', value)"
-          />
+          <ModelConfig />
         </el-tab-pane>
         <!-- tokenizer_pt -->
         <el-tab-pane label="tokenizer_pt" name="tokenizer_pt">
-          <TokenizerPtConfig
-            :params="params"
-            :tokenizer_pt_train_name_options="tokenizer_pt_train_name_options"
-            @updateData="(value) => this.$set(this.params, 'tokenizer_pt', value)"
-          />
+          <TokenizerPtConfig :tokenizer_pt_train_name_options="tokenizer_pt_train_name_options" />
         </el-tab-pane>
         <!-- train -->
         <el-tab-pane label="train" name="train">
-          <TrainConfig
-            :params="params"
-            :loss-config="lossConfig"
-            @updateData="(value) => this.$set(this.params, 'train', value)"
-          />
+          <TrainConfig />
         </el-tab-pane>
         <!-- unet -->
         <el-tab-pane label="unet" name="unet">
-          <UnetConfig
-            :params="params"
-            :is-open-unet-collapse="isOpenUnetCollapse"
-            @updateData="(value) => this.$set(this.params, 'unet', value)"
-          />
+          <UnetConfig v-model="isOpenUnetCollapse" />
         </el-tab-pane>
         <!-- text_encoder -->
         <el-tab-pane label="text_encoder" name="text_encoder">
-          <TextEncoderConfig
-            :params="params"
-            :is-open-text-encoder-collapse="isOpenTextEncoderCollapse"
-            @updateData="(value) => this.$set(this.params, 'text_encoder', value)"
-          />
+          <TextEncoderConfig v-model="isOpenTextEncoderCollapse" />
         </el-tab-pane>
         <!-- lora_unet -->
         <el-tab-pane label="lora_unet" name="lora_unet">
-          <LoraUnetConfig
-            :params="params"
-            :is-open-lora-unet-collapse="isOpenLoraUnetCollapse"
-            @updateData="(value) => this.$set(this.params, 'lora_unet', value)"
-          />
+          <LoraUnetConfig v-model="isOpenLoraUnetCollapse" />
         </el-tab-pane>
         <!-- lora_text_encoder -->
         <el-tab-pane label="lora_text_encoder" name="lora_text_encoder">
-          <LoraTextEncoderConfig
-            :params="params"
-            @updateData="(value) => this.$set(this.params, 'lora_text_encoder', value)"
-          />
+          <LoraTextEncoderConfig v-model="isOpenLoraTextEncoderCollapse" />
         </el-tab-pane>
         <!-- plugin_unet -->
         <el-tab-pane label="plugin_unet" name="plugin_unet">
-          <PluginUnetConfig
-            :params="params"
-            @updateData="(value) => this.$set(this.params, 'plugin_unet', value)"
-          />
+          <PluginUnetConfig v-model="isOpenPluginUnetCollapse" />
         </el-tab-pane>
         <!-- plugin_TE -->
         <el-tab-pane label="plugin_TE" name="plugin_TE">
-          <PluginTEConfig
-            :params="params"
-            @updateData="(value) => this.$set(this.params, 'plugin_TE', value)"
-          />
+          <PluginTEConfig v-model="isOpenPluginTeCollapse" />
         </el-tab-pane>
         <!-- data -->
         <el-tab-pane label="data" name="data">
-          <DataConfig
-            :params="params"
-            :tab-height="tabHeight"
-            @updateData="(value) => this.$set(this.params, 'data', value)"
-          />
+          <DataConfig ref="dataComponent" :tab-height="tabHeight" />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -177,15 +141,15 @@ import {
   default_train_data,
   ckpt_type_options,
   dtype_options,
-  lossConfigKeys,
-  lossConfigs,
   STATUS_TYPE
 } from '@/constants/index';
-
+import { watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { getTrain, updateTrain, getTrainStatus, stopTrain } from '@/api/train';
 import { handleOptions } from '@/utils/index';
-import { merge, isEmpty } from 'lodash-es';
+import { merge, isNil, isEmpty, cloneDeep } from 'lodash-es';
 import useSnStore from '@/store/snStore';
+import useTrainStore from '@/store/trainStore';
 export default {
   name: 'HTrain',
   components: {
@@ -212,16 +176,13 @@ export default {
       imgs: [],
       ckpt_type_options,
       tokenizer_pt_train_name_options: [],
-      pretrained_model_name_or_path_options: [],
       dtype_options,
-      params: JSON.parse(JSON.stringify(default_train_data)),
+      params: cloneDeep(default_train_data),
       disabled: false,
       progress: 0,
       timer: null,
       // 训练类型
       train_mode: 1,
-      lossConfigKeysOptions: lossConfigKeys,
-      lossConfig: '',
       colors: [
         { color: '#f56c6c', percentage: 20 },
         { color: '#e6a23c', percentage: 40 },
@@ -244,17 +205,18 @@ export default {
   },
   setup() {
     const snStore = useSnStore();
-    return { snStore };
-  },
-  watch: {
-    lossConfig(val) {
-      this.params.train.loss.criterion = lossConfigs[val];
-    }
-  },
-  created() {
-    this.initDefaultData();
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    // 任意更新储存到localstorage
+    watch(train, (state) => trainStore.storageTrain(state), { deep: true });
+    return { snStore, trainStore, config: train };
   },
   mounted() {
+    // if (!this.trainStore.storedTrain) {
+    this.initDefaultData();
+    // } else {
+    // this.initDefaultView(this.trainStore.storedTrain);
+    // }
     if (this.$refs.tabRef) {
       this.tabHeight = this.$refs.tabRef.$el.offsetHeight - 174;
     }
@@ -275,11 +237,12 @@ export default {
     async handleTrain() {
       if (this.disabled) return;
       this.disabled = true;
-      const info = this.handleParams();
-      const result = await updateTrain({ info, train_mode: this.train_mode }).catch((err) => {
-        this.$message.error(err || 'train failed');
-        this.disabled = false;
-      });
+      const result = await updateTrain({ config: this.config, train_mode: this.train_mode }).catch(
+        (err) => {
+          this.$message.error(err || 'train failed');
+          this.disabled = false;
+        }
+      );
       if (!result) return;
       const { sn } = result;
 
@@ -306,109 +269,26 @@ export default {
       }
       this.$emit('onMessage', status);
     },
-    handleParams() {
-      const {
-        isOpenUnetCollapse,
-        isOpenTextEncoderCollapse,
-        isOpenPluginUnetCollapse,
-        isOpenPluginTeCollapse,
-        isOpenLoraUnetCollapse,
-        isOpenDataCollapse,
-        isOpenLoraTextEncoderCollapse
-      } = this;
-      const params = JSON.parse(JSON.stringify(this.params));
-      if (!isOpenUnetCollapse) {
-        params.unet = null;
-      }
-      if (!isOpenTextEncoderCollapse) {
-        params.text_encoder = null;
-      }
-      if (!isOpenPluginUnetCollapse) {
-        params.plugin_unet = null;
-      }
-      if (!isOpenPluginTeCollapse) {
-        params.plugin_TE = null;
-      }
-      if (!isOpenLoraUnetCollapse) {
-        params.lora_unet = null;
-      }
-      if (!isOpenDataCollapse) {
-        params.data = null;
-      }
-      if (!isOpenLoraTextEncoderCollapse) {
-        params.lora_text_encoder = null;
-      }
-      return params;
-    },
-    confirmChangeSchedulerKwargs(value, key) {
-      this.$set(this.params.train[key], 'scheduler_kwargs', value);
-    },
-    confirmChangeOptimizerKwargs(value, key) {
-      this.$set(this.params.train, key, value);
-    },
     dataSourceName(dataset) {
       const length = this.dataSourceList(dataset).length;
       return `data_source${length + 1}`;
-    },
-    addUnetLayers(unet_index) {
-      this.params.unet[unet_index].layers.push(
-        JSON.parse(JSON.stringify(default_train_data.unet[0].layers[0]))
-      );
-    },
-    deleteUnetLayers(unet_index, index) {
-      this.params.unet[unet_index].layers.splice(index, 1);
-    },
-    addLogger() {
-      this.params.logger.push(JSON.parse(JSON.stringify(default_train_data.logger[0])));
-      this.$forceUpdate();
-    },
-    deleteLogger(index) {
-      this.params.logger.splice(index, 1);
-      this.$forceUpdate();
-    },
-    addDataSourceData_source(dataset) {
-      if (!this.params.data[dataset].source) {
-        this.$set(this.params.data[dataset], 'source', {});
-      }
-      this.$set(
-        this.params.data[dataset].source,
-        this.dataSourceName(dataset),
-        JSON.parse(JSON.stringify(default_train_data.data.dataset1.source.data_source1))
-      );
-      this.$forceUpdate();
-    },
-    deleteDataSourceData_source(dataset, source) {
-      this.$delete(this.params.data[dataset].source, source);
-      this.$forceUpdate();
     },
     async initDefaultData() {
       const result = await getTrain(this.snStore.train_sn).catch((err) => {
         this.$message.error(err);
       });
       if (!result) return;
+
+      const { pretrained_model_name_or_path = [], tokenizer_pt_train_name = [] } = result;
+      this.trainStore.pretrained_model_name_or_path_options = handleOptions(
+        pretrained_model_name_or_path
+      );
+      this.trainStore.tokenizer_pt_train_name_options = handleOptions(tokenizer_pt_train_name);
+
       const { info, is_pending, progress, pretrained_mode = [], server_yaml_file = [] } = result;
-      const newInfo = JSON.parse(JSON.stringify(info));
-      this.$set(this, 'params', JSON.parse(JSON.stringify(default_train_data)));
-      this.$set(this, 'params', merge(this.params, info));
+      const newInfo = merge(cloneDeep(default_train_data), info);
       if (!isEmpty(info)) {
-        const { unet, text_encoder, plugin_unet, plugin_TE, lora_unet, data, lora_text_encoder } =
-          newInfo;
-        this.isOpenUnetCollapse = !!unet;
-        this.isOpenTextEncoderCollapse = !!text_encoder;
-        this.isOpenPluginUnetCollapse = !!plugin_unet;
-        this.isOpenPluginTeCollapse = !!plugin_TE;
-        this.isOpenLoraUnetCollapse = !!lora_unet;
-        this.isOpenDataCollapse = !!data;
-        this.isOpenLoraTextEncoderCollapse = !!lora_text_encoder;
-        this.initDataTransforms(newInfo);
-      }
-      if (Object.keys(info).length) {
-        const { train } = info;
-        const { loss } = train || {};
-        this.lossConfig =
-          loss && loss.criterion ? loss.criterion._target_ : 'hcpdiff.loss.MinSNRLoss';
-      } else {
-        this.lossConfig = 'hcpdiff.loss.MinSNRLoss';
+        this.$refs.dataComponent.initDefaultData(newInfo);
       }
       this.disabled = is_pending;
       this.progress = progress;
@@ -421,45 +301,25 @@ export default {
         files: 'train_server_yaml_file_options',
         valueFiles: 'train_yaml_template_sn'
       });
-    },
-    initDataTransforms(newInfo) {
-      if (!isEmpty(newInfo.data)) return;
-      Object.keys(newInfo.data).forEach((dataset) => {
-        const { source } = newInfo.data[dataset];
-        Object.keys(source).forEach((sourceName) => {
-          const { image_transforms, tag_transforms } = source[sourceName];
-          // image_transforms 存在 transforms存在或长度为0
-          if (
-            !image_transforms ||
-            !image_transforms.transforms ||
-            image_transforms.transforms.length === 0
-          ) {
-            this.$set(this.params.data[dataset].source[sourceName], 'image_transforms', {
-              _target_: 'torchvision.transforms.Compose',
-              transforms: [
-                {
-                  _target_: 'torchvision.transforms.ToTensor'
-                }
-              ]
-            });
-          }
 
-          // tag_transforms 存在 tag_transforms存在或长度为0
-          if (
-            !tag_transforms ||
-            !tag_transforms.transforms ||
-            tag_transforms.transforms.length === 0
-          ) {
-            this.$set(this.params.data[dataset].source[sourceName], 'tag_transforms', {
-              _target_: 'torchvision.transforms.Compose',
-              transforms: [
-                {
-                  _target_: 'hcpdiff.utils.caption_tools.TagShuffle'
-                }
-              ]
-            });
-          }
-        });
+      newInfo.pretrained_model = this.config.pretrained_model;
+      this.initDefaultView(newInfo);
+    },
+    initDefaultView(info) {
+      const { unet, text_encoder, plugin_unet, plugin_TE, lora_unet, data, lora_text_encoder } =
+        info;
+      // 控制开关
+      this.isOpenUnetCollapse = !isNil(unet) && !isEmpty(unet);
+      this.isOpenTextEncoderCollapse = !isNil(text_encoder) && !isEmpty(text_encoder);
+      this.isOpenPluginUnetCollapse = !isNil(plugin_unet) && !isEmpty(plugin_unet);
+      this.isOpenPluginTeCollapse = !isNil(plugin_TE) && !isEmpty(plugin_TE);
+      this.isOpenLoraUnetCollapse = !isNil(lora_unet) && !isEmpty(lora_unet);
+      this.isOpenDataCollapse = !isNil(data) && !isEmpty(data);
+      this.isOpenLoraTextEncoderCollapse = !isNil(lora_text_encoder) && !isEmpty(lora_text_encoder);
+      // 先打开折叠再更新数据，否则将不会渲染页面。
+      this.$nextTick(() => {
+        // 触发全局相应
+        this.config = { ...info };
       });
     }
   },

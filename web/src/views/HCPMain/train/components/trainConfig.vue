@@ -3,8 +3,8 @@
     title="Train Config"
     tooltip="train.trainTip"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.train"
+    @confirm="(value) => (config.train = value)"
   >
     <HBlock>
       <div class="config-row">
@@ -13,14 +13,14 @@
           label="train_steps"
           tooltip="train.train.train_steps"
           :max="1000000"
-          v-model="local_config.train_steps"
+          v-model="config.train.train_steps"
         />
         <HConfigInputNumber
           class="row-style"
           label="max_grad_norm"
           tooltip="train.train.max_grad_norm"
           disabled
-          v-model="local_config.max_grad_norm"
+          v-model="config.train.max_grad_norm"
         />
       </div>
       <div class="config-row">
@@ -29,34 +29,34 @@
           tooltip="train.train.workers"
           :min="0"
           :max="12"
-          v-model="local_config.workers"
+          v-model="config.train.workers"
         />
         <HConfigRange
           label="gradient_accumulation_steps"
           tooltip="train.train.gradient_accumulation_steps"
           :min="1"
           :max="32"
-          v-model="local_config.gradient_accumulation_steps"
+          v-model="config.train.gradient_accumulation_steps"
         />
       </div>
       <div class="config-row">
-        <el-checkbox v-model="local_config.set_grads_to_none">set_grads_to_none</el-checkbox>
-        <el-checkbox v-model="local_config.scale_lr_pt">scale_lr_pt</el-checkbox>
-        <el-checkbox v-model="local_config.scale_lr">scale_lr</el-checkbox>
+        <el-checkbox v-model="config.train.set_grads_to_none">set_grads_to_none</el-checkbox>
+        <el-checkbox v-model="config.train.scale_lr_pt">scale_lr_pt</el-checkbox>
+        <el-checkbox v-model="config.train.scale_lr">scale_lr</el-checkbox>
       </div>
       <div class="config-row">
         <HConfigInputNumber
           class="row-style"
           label="save_step"
           tooltip="train.train.save_step"
-          :max="local_config.train_steps"
-          v-model="local_config.save_step"
+          :max="config.train.train_steps"
+          v-model="config.train.save_step"
         />
         <HConfigInput
           class="row-style"
           label="cfg_scale"
           tooltip="train.train.cfg_scale"
-          v-model="local_config.cfg_scale"
+          v-model="config.train.cfg_scale"
         />
       </div>
 
@@ -70,8 +70,8 @@
           :h-index="2"
           tooltip="train.train.optimizerTip"
           showEditYaml
-          :config="local_config.optimizer"
-          @confirm="(value) => (local_config = value)"
+          :config="config.train.optimizer"
+          @confirm="(value) => (config.train = value)"
         >
           <div class="config-row">
             <HConfigSelect
@@ -79,7 +79,7 @@
               class="row-style"
               tooltip="train.train.optimizer._target_"
               :options="optimizer_types_options"
-              v-model="local_config.optimizer._target_"
+              v-model="config.train.optimizer._target_"
             />
             <HConfigInputNumber
               class="row-style"
@@ -88,7 +88,7 @@
               :max="1"
               :step="0.001"
               tooltip="train.train.optimizer.weight_decay"
-              v-model="local_config.optimizer.weight_decay"
+              v-model="config.train.optimizer.weight_decay"
             />
           </div>
         </HBlock>
@@ -97,8 +97,8 @@
           :h-index="2"
           tooltip="train.train.optimizer_ptTip"
           showEditYaml
-          :config="local_config.optimizer_pt"
-          @confirm="(value) => (local_config = value)"
+          :config="config.train.optimizer_pt"
+          @confirm="(value) => (config.train = value)"
         >
           <div class="config-row">
             <HConfigSelect
@@ -106,7 +106,7 @@
               class="row-style"
               tooltip="train.train.optimizer_pt._target_"
               :options="optimizer_types_options"
-              v-model="local_config.optimizer_pt._target_"
+              v-model="config.train.optimizer_pt._target_"
             />
             <HConfigInputNumber
               class="row-style"
@@ -115,7 +115,7 @@
               :max="1"
               :step="0.0001"
               tooltip="train.train.optimizer_pt.weight_decay"
-              v-model="local_config.optimizer_pt.weight_decay"
+              v-model="config.train.optimizer_pt.weight_decay"
             />
           </div>
         </HBlock>
@@ -125,8 +125,8 @@
         :h-index="2"
         tooltip="train.train.lossTip"
         showEditYaml
-        :config="local_config.loss"
-        @confirm="(value) => (local_config = value)"
+        :config="config.train.loss"
+        @confirm="(value) => (config.train = value)"
       >
         <div class="config-row">
           <HConfigSelect
@@ -134,7 +134,7 @@
             class="row-style"
             tooltip="train.train.loss.criterion"
             :options="lossConfigKeys"
-            v-model="loss_config"
+            v-model="lossConfig"
           />
           <HConfigSelect
             label="type"
@@ -144,15 +144,15 @@
               { label: 'eps', value: 'eps' },
               { label: 'sample', value: 'sample' }
             ]"
-            v-model="local_config.loss.type"
+            v-model="config.train.loss.type"
           />
         </div>
         <div class="config-row">
           <HConfigRange
             label="gamma"
             tooltip="train.train.loss.gamma"
-            v-if="loss_config === 'hcpdiff.loss.MinSNRLoss'"
-            v-model="local_config.loss.criterion.gamma"
+            v-if="lossConfig === 'hcpdiff.loss.MinSNRLoss'"
+            v-model="config.train.loss.criterion.gamma"
             :min="0.5"
             :max="10"
             :step="0.1"
@@ -164,8 +164,8 @@
         :h-index="2"
         tooltip="train.train.schedulerTip"
         showEditYaml
-        :config="local_config.scheduler"
-        @confirm="(value) => (local_config = value)"
+        :config="config.train.scheduler"
+        @confirm="(value) => (config.train = value)"
       >
         <div class="config-row">
           <HConfigSelect
@@ -173,24 +173,24 @@
             label="name"
             tooltip="train.train.scheduler.name"
             :options="scheduler_name_options"
-            v-model="local_config.scheduler.name"
+            v-model="config.train.scheduler.name"
           />
           <HConfigInputNumber
             class="row-style"
             label="num_warmup_steps"
             :min="0"
-            :max="local_config.train_steps"
+            :max="config.train.train_steps"
             tooltip="train.train.scheduler.num_warmup_steps"
-            v-model="local_config.scheduler.num_warmup_steps"
+            v-model="config.train.scheduler.num_warmup_steps"
           />
         </div>
         <div class="config-row">
           <HConfigInputNumber
             class="row-style"
             label="num_training_steps"
-            :default-value="local_config.train_steps"
+            :default-value="config.train.train_steps"
             tooltip="train.train.scheduler.num_training_steps"
-            v-model="local_config.scheduler.num_training_steps"
+            v-model="config.train.scheduler.num_training_steps"
           />
         </div>
         <HBlock
@@ -200,7 +200,7 @@
         >
           <EditWordName
             title="编辑scheduler_kwargs"
-            :value="local_config.scheduler.scheduler_kwargs"
+            :value="config.train.scheduler.scheduler_kwargs"
             @confirm="(e) => confirmChangeSchedulerKwargs(e, 'scheduler')"
           />
         </HBlock>
@@ -210,8 +210,8 @@
         :h-index="2"
         tooltip="train.train.scheduler_ptTip"
         showEditYaml
-        :config="local_config.scheduler_pt"
-        @confirm="(value) => (local_config = value)"
+        :config="config.train.scheduler_pt"
+        @confirm="(value) => (config.train = value)"
       >
         <div class="config-row">
           <HConfigSelect
@@ -219,24 +219,24 @@
             label="name"
             :options="scheduler_name_options"
             tooltip="train.train.scheduler_pt.name"
-            v-model="local_config.scheduler_pt.name"
+            v-model="config.train.scheduler_pt.name"
           />
           <HConfigInputNumber
             class="row-style"
             label="num_warmup_steps"
             :min="0"
-            :max="local_config.train_steps"
+            :max="config.train.train_steps"
             tooltip="train.train.scheduler_pt.num_warmup_steps"
-            v-model="local_config.scheduler_pt.num_warmup_steps"
+            v-model="config.train.scheduler_pt.num_warmup_steps"
           />
         </div>
         <div class="config-row">
           <HConfigInputNumber
             class="row-style"
             label="num_training_steps"
-            :default-value="local_config.train_steps"
+            :default-value="config.train.train_steps"
             tooltip="train.train.scheduler_pt.num_training_steps"
-            v-model="local_config.scheduler_pt.num_training_steps"
+            v-model="config.train.scheduler_pt.num_training_steps"
           />
         </div>
         <HBlock
@@ -246,7 +246,7 @@
         >
           <EditWordName
             title="编辑scheduler_kwargs"
-            :value="local_config.scheduler_pt.scheduler_kwargs"
+            :value="config.train.scheduler_pt.scheduler_kwargs"
             @confirm="(e) => confirmChangeSchedulerKwargs(e, 'scheduler_pt')"
           />
         </HBlock>
@@ -255,57 +255,50 @@
   </h-collapse>
 </template>
 <script>
+import { storeToRefs } from 'pinia';
+import { cloneDeep } from 'lodash-es';
+import useTrainStore from '@/store/trainStore';
 import EditWordName from './editWordName.vue';
-import { handleOptions } from '@/utils/index';
-import { getTrain } from '@/api/train';
-import { optimizer_types_options, scheduler_name_options, lossConfigKeys } from '@/constants/index';
+import {
+  optimizer_types_options,
+  scheduler_name_options,
+  lossConfigKeys,
+  lossConfigs
+} from '@/constants/index';
 export default {
   name: 'TrainConfig',
   components: {
     EditWordName
   },
-  props: {
-    params: {
-      type: Object,
-      default: () => {}
-    },
-    lossConfig: {
-      type: String,
-      default: ''
-    }
-  },
   data() {
     return {
+      lossConfig: '',
       optimizer_types_options,
       scheduler_name_options,
-      lossConfigKeys,
-      local_config: this.params.train,
-      loss_config: this.lossConfig
+      lossConfigKeys
     };
   },
-  watch: {
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
-    }
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
   },
-  created() {
-    this.initData();
+  watch: {
+    lossConfig(val) {
+      this.config.train.loss.criterion = cloneDeep(lossConfigs[val]);
+    },
+    'config.train.loss.criterion._target_': function (val) {
+      const lossConfig = lossConfigs[val];
+      if (lossConfig) {
+        this.lossConfig = val;
+      } else {
+        this.lossConfig = lossConfigKeys[0].value;
+      }
+    }
   },
   methods: {
     confirmChangeSchedulerKwargs(value, key) {
-      this.$set(this.local_config[key], 'scheduler_kwargs', value);
-    },
-    async initData() {
-      const result = await getTrain(this.trainSn).catch((err) => {
-        this.$message.error(err);
-      });
-      if (!result) return;
-      const { pretrained_model_name_or_path = [] } = result;
-      this.pretrained_model_name_or_path_options = handleOptions(pretrained_model_name_or_path);
+      this.$set(this.config.train[key], 'scheduler_kwargs', value);
     }
   }
 };

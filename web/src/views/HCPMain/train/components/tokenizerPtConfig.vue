@@ -3,8 +3,8 @@
     title="Tokenizer Pt Config"
     tooltip="train.tokenizer_ptTip"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.tokenizer_pt"
+    @confirm="(value) => (config.tokenizer_pt = value)"
   >
     <HBlock>
       <div class="config-row">
@@ -13,10 +13,10 @@
           label="emb_dir"
           tooltip="train.tokenizer_pt.emb_dir"
           disabled
-          v-model="local_config.emb_dir"
+          v-model="config.tokenizer_pt.emb_dir"
         />
         <div class="config-row" style="flex: 1">
-          <el-checkbox v-model="local_config.replace">allow_tf32</el-checkbox>
+          <el-checkbox v-model="config.tokenizer_pt.replace">allow_tf32</el-checkbox>
         </div>
       </div>
       <HBlock
@@ -26,13 +26,13 @@
         showAdd
         @onAdd="addTokenizer_ptLogger"
         showEditYaml
-        :config="local_config.train"
-        @confirm="(value) => this.$set(this.local_config, 'train', value)"
+        :config="config.tokenizer_pt.train"
+        @confirm="(value) => this.$set(this.config, 'train', value)"
       >
-        <template v-if="local_config.train">
+        <template v-if="config.tokenizer_pt.train">
           <div
             class="block-style-item block-style-item-flex"
-            v-for="(item, index) in local_config.train"
+            v-for="(item, index) in config.tokenizer_pt.train"
             :key="`${index}-${Math.random()}`"
           >
             <div class="config-row">
@@ -40,7 +40,7 @@
                 class="row-style"
                 label="name"
                 tooltip="train.tokenizer_pt.train.name"
-                :options="tokenizer_pt_train_name_options"
+                :options="trainStore.tokenizer_pt_train_name_options"
                 v-model="item.name"
               />
               <HConfigInputNumber
@@ -58,9 +58,10 @@
   </h-collapse>
 </template>
 <script>
+import { storeToRefs } from 'pinia';
+import useTrainStore from '@/store/trainStore';
+import { cloneDeep } from 'lodash-es';
 import { default_train_data } from '@/constants/index';
-import { handleOptions } from '@/utils/index';
-import { getTrain } from '@/api/train';
 export default {
   name: 'TokenizerPtConfig',
   props: {
@@ -69,44 +70,23 @@ export default {
       default: () => {}
     }
   },
-  data() {
-    return {
-      local_config: this.params.tokenizer_pt,
-      tokenizer_pt_train_name_options: []
-    };
-  },
-  watch: {
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
-    }
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
   },
   methods: {
     addTokenizer_ptLogger() {
-      if (!this.local_config.train) {
-        this.$set(this.local_config, 'train', []);
+      if (!this.config.tokenizer_pt.train) {
+        this.$set(this.config.tokenizer_pt, 'train', []);
       }
-      this.local_config.train.push(
-        JSON.parse(JSON.stringify(default_train_data.tokenizer_pt.train[0]))
-      );
-      this.$forceUpdate();
+      this.config.tokenizer_pt.train.push(cloneDeep(default_train_data.tokenizer_pt.train[0]));
     },
     deleteTokenizer_ptLogger(index) {
-      this.local_config.train.splice(index, 1);
-      if (this.local_config.train.length === 0) {
-        this.$set(this.local_config, 'train', null);
+      this.config.tokenizer_pt.train.splice(index, 1);
+      if (this.config.tokenizer_pt.train.length === 0) {
+        this.$set(this.config.tokenizer_pt, 'train', null);
       }
-    },
-    async initData() {
-      const result = await getTrain(this.trainSn).catch((err) => {
-        this.$message.error(err);
-      });
-      if (!result) return;
-      const { tokenizer_pt_train_name = [] } = result;
-      this.tokenizer_pt_train_name_options = handleOptions(tokenizer_pt_train_name);
     }
   }
 };
