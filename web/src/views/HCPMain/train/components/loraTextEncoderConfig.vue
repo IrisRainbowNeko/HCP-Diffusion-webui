@@ -5,16 +5,16 @@
     tooltip="train.lora_text_encoderTip"
     :showAdd="isOpen"
     v-model="isOpen"
-    @onSwitch="handleLoraTextEncoderCollapseChange"
-    @add="addLora_text_encoder"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.lora_text_encoder"
+    @onSwitch="(e) => $emit('open', e)"
+    @add="addLora_text_encoder"
+    @confirm="(value) => (config.lora_text_encoder = value)"
   >
     <HBlock
       :h-index="2"
       label=" "
-      v-for="(item, index) in local_config || []"
+      v-for="(item, index) in config.lora_text_encoder || []"
       :key="`${index}-${Math.random()}`"
       showIcon
       @onDelete="deleteLora_text_encoder(index)"
@@ -72,58 +72,63 @@
   </h-collapse>
 </template>
 <script>
-import { default_lora_text_encoder_value } from '@/constants/index';
+import { storeToRefs } from 'pinia';
+import { cloneDeep } from 'lodash-es';
+import useTrainStore from '@/store/trainStore';
+import { default_train_data, default_lora_text_encoder_value } from '@/constants/index';
 export default {
   name: 'TokenizerPtConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
-    },
-    isOpenLoraTextEncoderCollapse: {
+    value: {
       type: Boolean,
       default: false
     }
   },
   data() {
     return {
-      local_config: this.params.lora_text_encoder,
-      isOpen: this.isOpenLoraTextEncoderCollapse
+      isOpen: false,
+      cacheConfig: cloneDeep(default_train_data.lora_text_encoder)
     };
   },
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
+  },
   watch: {
-    isOpen(val) {
-      this.$emit('onSwitch', val);
-    },
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
+    value(val) {
+      if (val) {
+        this.$set(this.config, 'lora_text_encoder', this.cacheConfig);
+        if (!this.config.lora_text_encoder || this.config.lora_text_encoder.length == 0) {
+          this.addLora_text_encoder();
+        }
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(
+          this.config.lora_text_encoder || default_train_data.lora_text_encoder
+        );
+        this.$set(this.config, 'lora_text_encoder', null);
+      }
+      this.isOpen = val;
     }
   },
   methods: {
-    handleLoraTextEncoderCollapseChange(val) {
-      if (val && !this.local_config) {
-        this.addLora_text_encoder();
-      }
-    },
     addLora_text_encoder() {
-      if (!this.local_config) {
-        this.local_config = [];
+      if (!this.config.lora_text_encoder) {
+        this.config.lora_text_encoder = [];
       }
-      this.local_config.push(JSON.parse(JSON.stringify(default_lora_text_encoder_value)));
+      this.config.lora_text_encoder.push(cloneDeep(default_lora_text_encoder_value));
     },
     deleteLora_text_encoder(index) {
-      this.local_config.splice(index, 1);
-      if (this.local_config && this.local_config.length === 0) {
-        this.local_config = null;
+      this.config.lora_text_encoder.splice(index, 1);
+      if (this.config.lora_text_encoder && this.config.lora_text_encoder.length === 0) {
+        this.config.lora_text_encoder = null;
         this.isOpen = false;
       }
-    },
-    updateData() {
-      this.$emit('updateData', this.local_config);
     }
   }
 };

@@ -5,11 +5,11 @@
     :showAdd="isOpen"
     v-model="isOpen"
     tooltip="train.plugin_TETip"
-    @onSwitch="handlePluginTeCollapseChange"
-    @add="addPluginTe"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.plugin_TE"
+    @onSwitch="(e) => $emit('open', e)"
+    @add="addPluginTe"
+    @confirm="(value) => (config.plugin_TE = value)"
   >
     <HBlock
       :h-index="2"
@@ -23,7 +23,7 @@
       @onDelete="deletePluginTe(plugin)"
     >
       <div class="config-row">
-        <el-checkbox v-model="local_config[plugin]._partial_">_partial_</el-checkbox>
+        <el-checkbox v-model="config.plugin_TE[plugin]._partial_">_partial_</el-checkbox>
       </div>
       <div class="config-row">
         <HConfigInput
@@ -31,13 +31,13 @@
           disabled
           label="_target_"
           tooltip="train.plugin_TE.controlnet._target_"
-          v-model="local_config[plugin]._target_"
+          v-model="config.plugin_TE[plugin]._target_"
         />
         <HConfigInputNumber
           class="row-style"
           label="lr"
           tooltip="train.plugin_TE.controlnet.lr"
-          v-model="local_config[plugin].lr"
+          v-model="config.plugin_TE[plugin].lr"
         />
       </div>
       <div class="config-row">
@@ -45,7 +45,7 @@
           label="from_layers"
           class="row-style"
           tooltip="train.plugin_TE.controlnet.from_layers"
-          v-model="local_config[plugin].from_layers"
+          v-model="config.plugin_TE[plugin].from_layers"
           :options="['pre_hook:', 'pre_hook:conv_in']"
         />
       </div>
@@ -54,7 +54,7 @@
           label="to_layers"
           class="row-style"
           tooltip="train.plugin_TE.controlnet.to_layers"
-          v-model="local_config[plugin].to_layers"
+          v-model="config.plugin_TE[plugin].to_layers"
           :options="[
             'down_blocks.0',
             'down_blocks.1',
@@ -69,78 +69,85 @@
   </h-collapse>
 </template>
 <script>
+import { storeToRefs } from 'pinia';
+import { cloneDeep, filter, map, max } from 'lodash-es';
+import useTrainStore from '@/store/trainStore';
 import { default_train_data } from '@/constants/index';
+const controlnet_key = 'controlnet';
+const controlnetRegExp = new RegExp(`${controlnet_key}\\d+`);
 export default {
   name: 'TokenizerPtConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
-    },
-    isOpenPluginTeCollapse: {
+    value: {
       type: Boolean,
       default: false
     }
   },
   data() {
     return {
-      local_config: this.params.plugin_TE,
-      isOpen: this.isOpenPluginTeCollapse
+      isOpen: false,
+      cacheConfig: cloneDeep(default_train_data.plugin_TE)
     };
   },
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
+  },
   watch: {
-    isOpen(val) {
-      this.$emit('onSwitch', val);
-    },
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
+    value(val) {
+      if (val) {
+        this.$set(this.config, 'plugin_TE', this.cacheConfig);
+        if (!this.config.plugin_TE || this.config.plugin_TE.length == 0) {
+          this.addPluginTe();
+        }
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(this.config.plugin_TE || default_train_data.plugin_TE);
+        this.$set(this.config, 'plugin_TE', null);
+      }
+      this.isOpen = val;
     }
   },
   computed: {
     pluginTeList() {
-      const data = this.local_config;
+      const data = this.config.plugin_TE;
       const keys = Object.keys(data || {});
       return keys;
     },
     pluginTeName({ pluginTeList }) {
-      const length = pluginTeList.length;
-      return `controlnet${length + 1}`;
+      const controlnetKeys = filter(pluginTeList, (key) => controlnetRegExp.test(key));
+      const nums = map(controlnetKeys, (key) => Number(key.replace(controlnet_key, '')));
+      const num = nums.length === 0 ? 1 : max(nums) + 1;
+      return `${controlnet_key}${num}`;
     }
   },
   methods: {
-    handlePluginTeCollapseChange(val) {
-      if (val && !this.local_config) {
-        this.addPluginTe();
-      }
-    },
     addPluginTe() {
-      if (!this.local_config) {
-        this.local_config = {};
+      if (!this.config.plugin_TE) {
+        this.config.plugin_TE = {};
       }
       this.$set(
-        this.local_config,
+        this.config.plugin_TE,
         this.pluginTeName,
-        JSON.parse(JSON.stringify(default_train_data.plugin_TE.controlnet1))
+        cloneDeep(default_train_data.plugin_TE.controlnet1)
       );
     },
     deletePluginTe(pluginTeName) {
-      this.$delete(this.local_config, pluginTeName);
-      if (Object.keys(this.local_config).length === 0) {
-        this.local_config = null;
+      this.$delete(this.config.plugin_TE, pluginTeName);
+      if (Object.keys(this.config.plugin_TE).length === 0) {
+        this.config.plugin_TE = null;
         this.isOpen = false;
       }
     },
     editPluginTeKey({ oldKeyName, newKeyName }) {
-      const oldData = JSON.parse(JSON.stringify(this.local_config[oldKeyName]));
-      this.$delete(this.local_config, oldKeyName);
-      this.$set(this.local_config, newKeyName, oldData);
-    },
-    updateData() {
-      this.$emit('updateData', this.local_config);
+      const oldData = cloneDeep(this.config.plugin_TE[oldKeyName]);
+      this.$delete(this.config.plugin_TE, oldKeyName);
+      this.$set(this.config.plugin_TE, newKeyName, oldData);
     }
   }
 };

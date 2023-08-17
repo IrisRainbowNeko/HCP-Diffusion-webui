@@ -11,10 +11,10 @@
     @add="addMergeGroupConfig"
     @pre="preMergeGroupConfig"
     @next="nextMergeGroupConfig"
-    @onSwitch="handleSwitchMergeConfig"
+    @onSwitch="(e) => $emit('open', e)"
     showEditYaml
     :config="config.merge"
-    @confirm="onConfirm"
+    @confirm="(value) => $set(config, 'merge', value)"
   >
     <!-- <HBlock class="merge-config-block"> -->
     <div class="config-row config-row-special merge-config-block">
@@ -38,7 +38,7 @@
               @onDelete="deleteMergeGroupConfig(groupKey)"
               showEditYaml
               :config="config.merge[groupKey]"
-              @confirm="(value) => onCarouselItemConfirm(groupKey, value)"
+              @confirm="(value) => $set(item, groupKey, value)"
             >
               <template>
                 <div class="config-row">
@@ -66,7 +66,7 @@
                   @onAdd="addMergeGroupPropConfig(groupKey, 'lora')"
                   showEditYaml
                   :config="item.lora"
-                  @confirm="(value) => onBlockConfirm(groupKey, 'lora', value)"
+                  @confirm="(value) => $set(item, 'lora', value)"
                 >
                   <div
                     class="block-style-item"
@@ -80,8 +80,8 @@
                         showRefresh
                         v-model="lora_item.path"
                         tooltip="generate.merge.group.lora.path"
-                        :options="merge_group_lora_path"
-                        @refresh="handleRefresh('merge_group_lora_path')"
+                        :options="generateStore.merge_group_lora_path_options"
+                        @refresh="generateStore.refreshTemplate('merge_group_lora_path')"
                       />
                       <HConfigInputNumber
                         label="alpha"
@@ -126,7 +126,7 @@
                   @onAdd="addMergeGroupPropConfig(groupKey, 'part')"
                   showEditYaml
                   :config="item.part"
-                  @confirm="(value) => onBlockConfirm(groupKey, 'part', value)"
+                  @confirm="(value) => $set(item, 'part', value)"
                 >
                   <div
                     class="block-style-item"
@@ -139,9 +139,9 @@
                         label="path"
                         tooltip="generate.merge.group.part.path"
                         showRefresh
-                        :options="merge_group_part_path"
+                        :options="generateStore.merge_group_part_path_options"
                         v-model="part_item.path"
-                        @refresh="handleRefresh('merge_group_part_path')"
+                        @refresh="generateStore.refreshTemplate('merge_group_part_path')"
                       />
                       <HConfigInputNumber
                         label="alpha"
@@ -168,7 +168,7 @@
                   @onAdd="addMergeGroupPropConfig(groupKey, 'plugin')"
                   showEditYaml
                   :config="item.plugin"
-                  @confirm="(value) => onBlockConfirm(groupKey, 'plugin', value)"
+                  @confirm="(value) => $set(item, 'plugin', value)"
                 >
                   <template v-if="item.plugin">
                     <div
@@ -182,9 +182,11 @@
                           label="path"
                           showRefresh
                           tooltip="generate.merge.group.plugin.controlnet.path"
-                          :options="merge_group_plugin_controlnet1_path"
+                          :options="generateStore.merge_group_plugin_controlnet1_path_options"
                           v-model="plugin_item.controlnet1.path"
-                          @refresh="handleRefresh('merge_group_plugin_controlnet1_path')"
+                          @refresh="
+                            generateStore.refreshTemplate('merge_group_plugin_controlnet1_path')
+                          "
                         />
                         <HConfigInput
                           label="layers"
@@ -211,14 +213,16 @@
 </template>
 <script>
 import {
-  default_data,
+  default_generate_data,
   default_group_plugin,
   group_plugin_options,
   mask_options
 } from '@/constants/index';
 import { storeToRefs } from 'pinia';
-import useConfigStore from '@/store/configStore';
-import { cloneDeep, assign } from 'lodash-es';
+import useGenerateStore from '@/store/generateStore';
+import { cloneDeep, isNil, max } from 'lodash-es';
+const group_key = 'group';
+const groupRegExp = new RegExp(`${group_key}\\d+`);
 export default {
   name: 'MergeConfig',
   model: {
@@ -229,25 +233,13 @@ export default {
     value: {
       type: Boolean,
       default: () => false
-    },
-    merge_group_lora_path: {
-      type: Array,
-      default: () => []
-    },
-    merge_group_part_path: {
-      type: Array,
-      default: () => []
-    },
-    merge_group_plugin_controlnet1_path: {
-      type: Array,
-      default: () => []
     }
   },
   data() {
     return {
       group_plugin_options,
       mask_options,
-      cacheConfig: cloneDeep(default_data.merge),
+      cacheConfig: cloneDeep(default_generate_data.merge),
       isOpenMergeConfig: false,
 
       currentIndex: 0,
@@ -255,9 +247,9 @@ export default {
     };
   },
   setup() {
-    const configStore = useConfigStore();
-    const { generate } = storeToRefs(configStore);
-    return { configStore, config: generate };
+    const generateStore = useGenerateStore();
+    const { generate } = storeToRefs(generateStore);
+    return { generateStore, config: generate };
   },
   computed: {
     groupNameList() {
@@ -268,88 +260,86 @@ export default {
     }
   },
   watch: {
-    value: {
-      handler: function (val) {
-        // marge配置项为空时，自动添加一个配置项
-        if (val) {
-          this.configStore.updateGenerateByPath('merge', this.cacheConfig);
-        } else {
-          // 备份
-          this.cacheConfig = cloneDeep(this.config.merge || default_data.merge);
-          // 必须修改上层才会触发响应
-          this.configStore.updateGenerateByPath('merge', null);
-        }
+    value(val) {
+      // marge配置项为空时，自动添加一个配置项
+      if (val) {
+        this.$set(this.config, 'merge', this.cacheConfig);
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(this.config.merge || default_generate_data.merge);
+        this.$set(this.config, 'merge', null);
+      }
 
-        this.isOpenMergeConfig = val;
-      },
-      immediate: true
+      this.isOpenMergeConfig = val;
+    },
+    'config.merge': {
+      handler() {
+        this.handleMerge(this.config);
+      }
     }
   },
   methods: {
-    onConfirm(value) {
-      assign(this.config.merge, value);
+    initDefaultData(newInfo) {
+      this.handleMerge(newInfo);
     },
-    onCarouselItemConfirm(groupKey, value) {
-      const config = this.config.merge;
-      config[groupKey] = value;
-      assign(this.config, config);
-    },
-    onBlockConfirm(groupKey, prop, value) {
-      const config = this.config.merge;
-      config[groupKey][prop] = value;
-      assign(this.config, config);
-    },
-
-    handleChangeType(type, groupKey) {
-      const config = cloneDeep(this.config.merge);
-      if (type === 'unet') {
-        config[groupKey].plugin = [default_group_plugin];
-      } else {
-        delete config[groupKey].plugin;
+    handleMerge(info) {
+      const merge = info.merge;
+      if (merge && Object.keys(merge).length === 0) info.merge = null;
+      if (info.merge) {
+        Object.values(merge).forEach((group) => {
+          // 判断plugin是否为空数组
+          if (group && group.plugin && !group.plugin.length) {
+            this.$set(group, 'plugin', null);
+          }
+        });
       }
-      this.configStore.updateGenerateByPath('merge', config);
+    },
+    handleChangeType(type, groupKey) {
+      const group = this.config.merge[groupKey];
+      if (type === 'unet') {
+        this.$set(group, 'plugin', [default_group_plugin]);
+      } else {
+        this.$set(group, 'plugin', null);
+      }
     },
 
     addMergeGroupPropConfig(groupKey, prop) {
-      const config = cloneDeep(this.config.merge);
-      if (!config[groupKey][prop]) {
-        config[groupKey][prop] = [];
+      const group = this.config.merge[groupKey];
+      if (!group[prop]) {
+        group[prop] = [];
       }
-      let obj = {};
+      let obj = [];
       if (prop === 'plugin') {
-        obj = default_group_plugin;
+        obj = cloneDeep(default_group_plugin);
       } else {
-        obj = default_data.merge.group1[prop][0];
+        obj = cloneDeep(default_generate_data.merge.group1[prop][0]);
       }
-      config[groupKey][prop].push(cloneDeep(obj));
-      this.configStore.updateGenerateByPath('merge', config);
+      group[prop].push(cloneDeep(obj));
+      this.$set(group, prop, group[prop]);
     },
     deleteMergeGroupPropConfig(groupKey, prop, index) {
-      const config = cloneDeep(this.config.merge);
-      config[groupKey][prop].splice(index, 1);
-      if (config[groupKey][prop].length === 0) {
-        config[groupKey][prop] = null;
+      this.config.merge[groupKey][prop].splice(index, 1);
+      if (this.config.merge[groupKey][prop].length === 0) {
+        this.$set(this.config.merge[groupKey], prop, null);
       }
-      this.configStore.updateGenerateByPath('merge', config);
     },
 
     addMergeGroupConfig() {
-      let config = cloneDeep(this.config.merge);
-      if (!config) {
-        config = {};
+      const merge = this.config.merge;
+      if (isNil(merge)) {
+        this.$set(this.config, 'merge', {});
       }
-      const length = Object.keys(config || {}).length;
-      config[`group${length + 1}`] = cloneDeep(default_data.merge.group1);
-      this.configStore.updateGenerateByPath('merge', config);
+      const controlnetKeys = Object.keys(merge || {}).filter((key) => groupRegExp.test(key));
+      const nums = controlnetKeys.map((key) => Number(key.replace(group_key, '')));
+      const num = nums.length === 0 ? 1 : max(nums) + 1;
+      this.$set(merge, `${group_key}${num}`, cloneDeep(default_generate_data.merge.group1));
     },
     deleteMergeGroupConfig(groupKey) {
-      let config = cloneDeep(this.config.merge);
-      delete config[groupKey];
-      if (Object.keys(config || {}).length === 0) {
+      const merge = this.config.merge;
+      this.$delete(merge, groupKey);
+      if (Object.keys(merge || {}).length === 0) {
         this.$emit('open', false);
-        config = null;
       }
-      this.configStore.updateGenerateByPath('merge', config);
     },
 
     preMergeGroupConfig() {
@@ -366,16 +356,12 @@ export default {
     },
 
     handleChangeMask(e, groupKey, index) {
-      const config = cloneDeep(this.config.merge);
-      config[groupKey].lora[index].mask = e === '-1' ? null : e.split(',').map(Number);
-      this.configStore.updateGenerateByPath('merge', config);
-    },
-
-    handleSwitchMergeConfig(val) {
-      this.$emit('open', val);
-    },
-    handleRefresh(field) {
-      this.$emit('refresh', field);
+      const lora = this.config.merge[groupKey].lora[index];
+      if (e === '-1') {
+        this.$delete(lora, 'mask');
+      } else {
+        this.$set(lora, 'mask', e.split(',').map(Number));
+      }
     }
   },
   destroyed() {

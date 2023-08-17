@@ -2,13 +2,14 @@
   <div class="home-wrapper">
     <div class="nav-wrap">
       <div class="config-row change-item">
+        <div>{{ pretrained_model }}</div>
         <HConfigSelect
           class="select"
           label="pretrained_model :"
           showRefresh
           tooltip="pretrained_model"
           :loading="loading"
-          :options="options"
+          :options="commonStore.pretrained_model_options"
           v-model="pretrained_model"
           @refresh="handleRefresh"
           style="margin-right: 10px"
@@ -35,7 +36,6 @@
           ref="generateComponent"
           :pretrained_model="pretrained_model"
           :yaml_template_sn="generate_yaml_template_sn"
-          @getPretrainedMode="getPretrainedMode"
           @onMessage="handlerErrorMessage"
         >
           <template v-slot:changeModel>
@@ -45,7 +45,7 @@
                 label="yaml_template :"
                 tooltip="yaml_template"
                 :loading="yaml_template_loading"
-                :options="generate_server_yaml_file_options"
+                :options="generateStore.generate_server_yaml_file_options"
                 v-model="generate_yaml_template_sn"
               >
                 <template>
@@ -66,7 +66,6 @@
           ref="trainComponent"
           v-show="activeName === 'train'"
           :yaml_template_sn="train_yaml_template_sn"
-          @getPretrainedMode="getPretrainedMode"
           @onMessage="handlerErrorMessage"
         >
           <template v-slot:changeModel>
@@ -76,7 +75,7 @@
                 tooltip="yaml_template"
                 label="yaml_template :"
                 :loading="yaml_template_loading"
-                :options="train_server_yaml_file_options"
+                :options="trainStore.train_server_yaml_file_options"
                 v-model="train_yaml_template_sn"
               >
                 <template>
@@ -106,9 +105,10 @@ import HTtain from './train/index.vue';
 import HDataset from './dataset/index.vue';
 import HPt from './pt/index.vue';
 
-import { getGenerateDir } from '@/api/file';
-import { handleOptions } from '@/utils/index';
 import useSnStore from '@/store/snStore';
+import useCommonStore from '@/store/commonStore';
+import useGenerateStore from '@/store/generateStore';
+import useTrainStore from '@/store/trainStore';
 import copy from 'copy-to-clipboard';
 import { STATUS_TYPE } from '@/constants/index';
 
@@ -130,23 +130,23 @@ export default {
       ],
       activeName: 'train',
       pretrained_model: '',
-      options: [],
       loading: false,
       yaml_template_loading: false,
 
-      generate_server_yaml_file_options: [],
       generate_yaml_template_sn: '',
-      train_server_yaml_file_options: [],
       train_yaml_template_sn: ''
     };
   },
   setup() {
+    const commonStore = useCommonStore();
     const snStore = useSnStore();
-    return { snStore };
+    const generateStore = useGenerateStore();
+    const trainStore = useTrainStore();
+    return { commonStore, snStore, generateStore, trainStore };
   },
   created() {
-    this.generate_yaml_template_sn = this.snStore.generate_sn;
-    this.train_yaml_template_sn = this.snStore.train_sn;
+    this.generate_yaml_template_sn = this.snStore.generateSn;
+    this.train_yaml_template_sn = this.snStore.trainSn;
     this.activeName = this.$route.query.activeName || 'generate';
   },
   methods: {
@@ -167,29 +167,11 @@ export default {
 
     handleRefresh() {
       this.loading = true;
-      getGenerateDir({ path: 'pretrained_mode' })
-        .then((res) => {
-          if (!res) return;
-          this.options = handleOptions(res.files);
-        })
-        .finally(() => {
-          setTimeout(() => {
-            this.loading = false;
-          }, 500);
-        });
-    },
-    getPretrainedMode({ options, pretrained_model, server_yaml_file, files, valueFiles }) {
-      this.options = options;
-      this.pretrained_model = pretrained_model || this.pretrained_model;
-      this[files] = server_yaml_file.map((item) => {
-        return {
-          label: item.label,
-          value: item.value || '-1'
-        };
+      this.commonStore.pretrained_model_refresh().finally(() => {
+        setTimeout(() => {
+          this.loading = false;
+        }, 500);
       });
-      if (!this[valueFiles]) {
-        this[valueFiles] = server_yaml_file[0].value;
-      }
     },
     handleRefreshYamlTemplate(files) {
       const { activeName } = this;

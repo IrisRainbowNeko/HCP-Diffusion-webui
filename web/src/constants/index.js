@@ -32,6 +32,11 @@ export const dpm_type_options = [
   { label: 'dpmsolver', value: 'dpmsolver' }
 ];
 
+export const dmp_schedulers = [
+  'diffusers.DPMSolverMultistepScheduler',
+  'diffusers.DPMSolverSinglestepScheduler'
+];
+
 export const karras_schedulers = [
   'diffusers.DPMSolverMultistepScheduler',
   'diffusers.DPMSolverSinglestepScheduler',
@@ -41,7 +46,7 @@ export const karras_schedulers = [
 
 export const pretrained_model_name_or_path_options = [];
 
-export const default_data = {
+export const default_generate_data = {
   // 文本输入
   prompt: '',
   // 文本输入
@@ -124,9 +129,7 @@ export const default_data = {
       // 数字输入 [0, 1]
       beta_end: 0.012,
       // 文本输入 不可编辑
-      beta_schedule: 'scaled_linear',
-      use_karras_sigmas: null,
-      lower_order_final: null
+      beta_schedule: 'scaled_linear'
     },
     // 默认值为 null 根据checkbox判断 是否需要该选项
     vae: {
@@ -343,7 +346,6 @@ export const default_train_data = {
       criterion: {
         _target_: 'hcpdiff.loss.MSELoss',
         _partial_: true,
-        gamma: 2,
         reduction: 'none'
       },
       // 列表 eps、sample
@@ -408,11 +410,11 @@ export const default_train_data = {
           _args_: ['512*512']
         },
         // range [1, 16]
-        num_bucket: 1
+        num_bucket: 1,
 
         //_target_等于hcpdiff.data.bucket.FixedBucket 时才会存在
         // _target_: 'hcpdiff.data.bucket.FixedBucket',
-        // target_size: [512, 512]
+        target_size: [512, 512]
       },
       source: {
         // 类数组对象 可添加
@@ -547,7 +549,7 @@ export const default_train_data = {
       // 数字输入
       lr: 0.000001,
       // 数组 每一项是文本输入
-      layers: ['']
+      layers: []
     }
   ],
   lora_text_encoder: [
@@ -572,7 +574,7 @@ export const default_train_data = {
       // 数字输入
       lr: 0.000001,
       // 数组 每一项是文本输入
-      layers: ['']
+      layers: []
     }
   ],
   tokenizer_pt: {
@@ -661,6 +663,24 @@ export const default_lora_text_encoder_value = {
   branch: 'p',
   dropout: 0.1,
   layers: ['re:.*self_attn$', 're:.*mlp$']
+};
+
+export const default_image_transforms = {
+  _target_: 'torchvision.transforms.Compose',
+  transforms: [
+    {
+      _target_: 'torchvision.transforms.ToTensor'
+    }
+  ]
+};
+
+export const default_tag_transforms = {
+  _target_: 'torchvision.transforms.Compose',
+  transforms: [
+    {
+      _target_: 'hcpdiff.utils.caption_tools.TagShuffle'
+    }
+  ]
 };
 
 //train loss 参数

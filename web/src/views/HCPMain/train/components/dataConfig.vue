@@ -8,12 +8,12 @@
     tooltip="train.dataTip"
     :nextDisabled="datasetIndex === datasetList.length - 1"
     :preDisabled="datasetIndex === 0"
+    showEditYaml
+    :config="config.data"
     @add="addDateset"
     @pre="handlerPreDataset"
     @next="handlerNextDataset"
-    showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    @confirm="(value) => (config.data = value)"
   >
     <HBlock>
       <!-- dataset1 -->
@@ -38,13 +38,8 @@
               tooltip="train.data.datasetTip"
               @onDelete="deleteDataset(dataset)"
               showEditYaml
-              :config="local_config[dataset]"
-              @confirm="
-                (value) => {
-                  debugger;
-                  this.$set(this.local_config, dataset, value);
-                }
-              "
+              :config="config.data[dataset]"
+              @confirm="(value) => $set(config.data, dataset, value)"
             >
               <div class="config-row">
                 <HConfigInput
@@ -52,13 +47,13 @@
                   label="_target_"
                   disabled
                   tooltip="train.data.dataset._target_"
-                  v-model="local_config[dataset]._target_"
+                  v-model="config.data[dataset]._target_"
                 />
                 <div class="config-row" style="flex: 1">
-                  <el-checkbox v-model="local_config[dataset].cache_latents">
+                  <el-checkbox v-model="config.data[dataset].cache_latents">
                     cache_latents
                   </el-checkbox>
-                  <el-checkbox v-model="local_config[dataset].att_mask_encode">
+                  <el-checkbox v-model="config.data[dataset].att_mask_encode">
                     att_mask_encode
                   </el-checkbox>
                 </div>
@@ -70,7 +65,7 @@
                   :min="1"
                   :max="100"
                   tooltip="train.data.dataset.batch_size"
-                  v-model="local_config[dataset].batch_size"
+                  v-model="config.data[dataset].batch_size"
                 />
                 <HConfigInputNumber
                   class="row-style"
@@ -79,7 +74,7 @@
                   :max="10"
                   :step="0.01"
                   tooltip="train.data.dataset.loss_weight"
-                  v-model="local_config[dataset].loss_weight"
+                  v-model="config.data[dataset].loss_weight"
                 />
               </div>
               <!-- bucket -->
@@ -88,8 +83,8 @@
                 tooltip="train.data.dataset.bucketTip"
                 :h-index="3"
                 showEditYaml
-                :config="local_config[dataset].bucket"
-                @confirm="(value) => this.$set(this.local_config[dataset], bucket, value)"
+                :config="config.data[dataset].bucket"
+                @confirm="(value) => $set(config.data[dataset], 'bucket', value)"
               >
                 <div class="config-row">
                   <HConfigSelect
@@ -97,12 +92,12 @@
                     label="_target_"
                     tooltip="train.data.dataset.bucket._target_"
                     :options="bucket__target__options"
-                    v-model="local_config[dataset].bucket._target_"
-                    @onChange="(e) => handlerBucketTargetChange(dataset, e)"
+                    v-model="config.data[dataset].bucket._target_"
+                    @onChange="(e) => handlerBucketTargetChange(config, dataset, e)"
                   />
                   <template
                     v-if="
-                      local_config[dataset].bucket._target_ ===
+                      config.data[dataset].bucket._target_ ===
                       'hcpdiff.data.bucket.RatioBucket.from_files'
                     "
                   >
@@ -113,23 +108,23 @@
                       :step="1"
                       integer
                       tooltip="train.data.dataset.bucket.num_bucket"
-                      v-model="local_config[dataset].bucket.num_bucket"
+                      v-model="config.data[dataset].bucket.num_bucket"
                     />
                   </template>
                   <div
                     class="config-row"
                     v-if="
-                      local_config[dataset].bucket._target_ === 'hcpdiff.data.bucket.FixedBucket' &&
-                      local_config[dataset].bucket.target_size
+                      config.data[dataset].bucket._target_ === 'hcpdiff.data.bucket.FixedBucket' &&
+                      config.data[dataset].bucket.target_size
                     "
                   >
                     <HConfigInputNumber
                       label="target_size"
                       class="row-style"
                       tooltip="train.data.dataset.bucket.target_size"
-                      v-model="local_config[dataset].bucket.target_size[0]"
+                      v-model="config.data[dataset].bucket.target_size[0]"
                     />
-                    <HConfigInputNumber v-model="local_config[dataset].bucket.target_size[1]" />
+                    <HConfigInputNumber v-model="config.data[dataset].bucket.target_size[1]" />
                   </div>
                 </div>
                 <HBlock
@@ -137,9 +132,9 @@
                   label="target_area"
                   tooltip="train.data.dataset.bucket.target_areaTip"
                   v-if="
-                    local_config[dataset].bucket._target_ ===
+                    config.data[dataset].bucket._target_ ===
                       'hcpdiff.data.bucket.RatioBucket.from_files' &&
-                    local_config[dataset].bucket.target_area
+                    config.data[dataset].bucket.target_area
                   "
                 >
                   <div class="config-row">
@@ -147,13 +142,13 @@
                       class="row-style"
                       label="_target_"
                       tooltip="train.data.dataset.bucket.target_area._target_"
-                      v-model="local_config[dataset].bucket.target_area._target_"
+                      v-model="config.data[dataset].bucket.target_area._target_"
                     />
                     <HConfigInputSum
                       class="row-style"
                       label="_args_"
                       tooltip="train.data.dataset.bucket.target_area._args_"
-                      v-model="local_config[dataset].bucket.target_area._args_"
+                      v-model="config.data[dataset].bucket.target_area._args_"
                     />
                   </div>
                 </HBlock>
@@ -166,8 +161,8 @@
                 tooltip="train.data.dataset.sourceTip"
                 @onAdd="addDataSourceData_source(dataset)"
                 showEditYaml
-                :config="local_config[dataset].source"
-                @confirm="(value) => this.$set(this.local_config[dataset], source, value)"
+                :config="config.data[dataset].source"
+                @confirm="(value) => $set(config.data[dataset], 'source', value)"
               >
                 <!-- data_source1\ data_source2 -->
                 <HBlock
@@ -180,21 +175,21 @@
                   tooltip="train.data.dataset.source.data_sourceTip"
                   @onDelete="deleteDataSourceData_source(dataset, source)"
                   showEditYaml
-                  :config="local_config[dataset].source[source]"
-                  @confirm="(value) => this.$set(this.local_config[dataset].source, source, value)"
+                  :config="config.data[dataset].source[source]"
+                  @confirm="(value) => $set(config.data[dataset].source, source, value)"
                 >
                   <div class="config-row">
                     <HConfigInput
                       class="row-style"
                       label="img_root"
                       tooltip="train.data.dataset.source.data_source.img_root"
-                      v-model="local_config[dataset].source[source].img_root"
+                      v-model="config.data[dataset].source[source].img_root"
                     />
                     <HConfigInput
                       class="row-style"
                       label="att_mask"
                       tooltip="train.data.dataset.source.data_source.att_mask"
-                      v-model="local_config[dataset].source[source].att_mask"
+                      v-model="config.data[dataset].source[source].att_mask"
                     />
                   </div>
                   <div class="config-row">
@@ -203,13 +198,13 @@
                       label="prompt_template"
                       :options="prompt_template_options"
                       tooltip="train.data.dataset.source.data_source.prompt_template"
-                      v-model="local_config[dataset].source[source].prompt_template"
+                      v-model="config.data[dataset].source[source].prompt_template"
                     />
                     <HConfigInput
                       class="row-style"
                       label="caption_file"
                       tooltip="train.data.dataset.source.data_source.caption_file"
-                      v-model="local_config[dataset].source[source].caption_file"
+                      v-model="config.data[dataset].source[source].caption_file"
                     />
                   </div>
 
@@ -221,31 +216,25 @@
                     tooltip="train.data.dataset.source.data_source.image_transformsTip"
                     show-add
                     @onAdd="addImgTransforms(dataset, source)"
-                    @onSwitch="(e) => handleImgTransformsChange(dataset, source, e)"
                     showEditYaml
-                    :config="local_config[dataset].source[source].image_transforms"
+                    :config="config.data[dataset].source[source].image_transforms"
                     @confirm="
                       (value) =>
-                        this.$set(
-                          this.local_config[dataset].source[source],
-                          image_transforms,
-                          value
-                        )
+                        $set(config.data[dataset].source[source], 'image_transforms', value)
                     "
                   >
                     <template
-                      v-if="local_config[dataset].source[source].image_transforms.transforms"
+                      v-if="config.data[dataset].source[source].image_transforms.transforms"
                     >
                       <HBlock
                         style="margin-top: 10px"
-                        v-for="(item, index) in local_config[dataset].source[source]
-                          .image_transforms.transforms || []"
+                        v-for="(item, index) in config.data[dataset].source[source].image_transforms
+                          .transforms || []"
                         :key="item._target_ + index"
                         :h-index="6"
                         :label="`transforms-${index}`"
                         :showIcon="
-                          local_config[dataset].source[source].image_transforms.transforms.length >
-                          1
+                          config.data[dataset].source[source].image_transforms.transforms.length > 1
                         "
                         tooltip="train.data.dataset.source.data_source.image_transformsTip"
                         @onDelete="deleteImgTransforms(dataset, source, index)"
@@ -257,7 +246,9 @@
                             :options="imgTransformsConfig"
                             v-model="item._target_"
                             tooltip="train.data.dataset.source.data_source.image_transforms._target_"
-                            @onChange="(e) => handlerChangeImgTransforms(dataset, source, index, e)"
+                            @onChange="
+                              (e) => handlerChangeImgTransforms(config, dataset, source, index, e)
+                            "
                           />
                           <template
                             v-if="
@@ -366,23 +357,21 @@
                     tooltip="train.data.dataset.source.data_source.tag_transformsTip"
                     @onAdd="addTagTransforms(dataset, source)"
                     showEditYaml
-                    :config="local_config[dataset].source[source].tag_transforms"
+                    :config="config.data[dataset].source[source].tag_transforms"
                     @confirm="
-                      (value) =>
-                        this.$set(this.local_config[dataset].source[source], tag_transforms, value)
+                      (value) => $set(config.data[dataset].source[source], 'tag_transforms', value)
                     "
                   >
-                    <template v-if="local_config[dataset].source[source].tag_transforms.transforms">
+                    <template v-if="config.data[dataset].source[source].tag_transforms.transforms">
                       <HBlock
-                        v-for="(transforms, transforms_index) in local_config[dataset].source[
-                          source
-                        ].tag_transforms.transforms || []"
+                        v-for="(transforms, transforms_index) in config.data[dataset].source[source]
+                          .tag_transforms.transforms || []"
                         :key="transforms._target_ + transforms_index"
                         :h-index="6"
                         style="margin-top: 10px"
                         :label="`transforms-${transforms_index}`"
                         :showIcon="
-                          local_config[dataset].source[source].tag_transforms.transforms.length > 1
+                          config.data[dataset].source[source].tag_transforms.transforms.length > 1
                         "
                         tooltip="train.data.dataset.source.data_source.tag_transformsTip"
                         @onDelete="deleteTagTransforms(dataset, source, transforms_index)"
@@ -396,7 +385,13 @@
                             tooltip="train.data.dataset.source.data_source.tag_transforms._target_"
                             @onChange="
                               (e) =>
-                                handlerChangeTagTransforms(dataset, source, transforms_index, e)
+                                handlerChangeTagTransforms(
+                                  config,
+                                  dataset,
+                                  source,
+                                  transforms_index,
+                                  e
+                                )
                             "
                           />
                           <template
@@ -441,25 +436,31 @@
 <script>
 import EditWordName from './editWordName.vue';
 import { handleOptions } from '@/utils/index';
-import { getTrain } from '@/api/train';
+import { storeToRefs } from 'pinia';
+import { isEmpty, cloneDeep, filter, map, max, forEach, isEqual } from 'lodash-es';
 import {
   default_train_data,
+  default_image_transforms,
+  default_tag_transforms,
   img_transformsConfigKeys,
   tag_transformsConfigKeys,
   bucket__target__options,
   tag_transformsConfigKeysOptions
 } from '@/constants/index';
+import useTrainStore from '@/store/trainStore';
 import useSnStore from '@/store/snStore';
+const default_target_area = default_train_data.data.dataset1.bucket.target_area;
+const default_target_size = default_train_data.data.dataset1.bucket.target_size;
+const dataset_key = 'dataset';
+const data_source_key = 'data_source';
+const datasetRegExp = new RegExp(`${dataset_key}\\d+`);
+const dataSourceRegExp = new RegExp(`${data_source_key}\\d+`);
 export default {
   name: 'TokenizerPtConfig',
   components: {
     EditWordName
   },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
-    },
     tabHeight: {
       type: Number,
       default: 1000
@@ -467,15 +468,15 @@ export default {
   },
   setup() {
     const snStore = useSnStore();
-    return { snStore };
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { snStore, trainStore, config: train };
   },
   watch: {
-    local_config: {
+    'config.data': {
       handler(val) {
         if (val) {
           this.restScrollPosition();
-          this.datasetList = Object.keys(val);
-          this.$emit('updateData', val);
         }
       },
       deep: true,
@@ -487,19 +488,18 @@ export default {
       datasetIndex: 0,
       currentIndex: 0,
       bucket__target__options,
-      local_config: this.params.data,
-      datasetList: [],
       prompt_template_options: []
     };
   },
   computed: {
-    getDatasetName({ datasetList }) {
-      const length = datasetList.length;
-      let datasetName = `dataset${length + 1}`;
-      if (datasetList.includes(datasetName)) {
-        datasetName = `dataset${length + 2}`;
-      }
-      return datasetName;
+    datasetList() {
+      return Object.keys(this.config.data);
+    },
+    getDatasetName() {
+      const controlnetKeys = filter(this.datasetList, (key) => datasetRegExp.test(key));
+      const nums = map(controlnetKeys, (key) => Number(key.replace(dataset_key, '')));
+      const num = nums.length === 0 ? 1 : max(nums) + 1;
+      return `${dataset_key}${num}`;
     },
     imgTransformsConfig() {
       return Object.keys(img_transformsConfigKeys).map((key) => {
@@ -515,32 +515,105 @@ export default {
       return handleOptions(tag_transformsConfigKeysOptions);
     }
   },
-  created() {
-    this.initData();
-  },
   methods: {
-    async initData() {
-      const result = await getTrain(this.snStore.train_sn).catch((err) => {
-        this.$message.error(err);
-      });
-      if (!result) return;
-      const { prompt_template = [] } = result;
+    initDefaultData(newInfo) {
+      const { prompt_template = [] } = newInfo;
       this.prompt_template_options = handleOptions(prompt_template);
+      this.handleInitData(newInfo);
     },
-    handlerBucketTargetChange(dataset, e) {
-      if (e === 'hcpdiff.data.bucket.RatioBucket.from_files') {
-        this.$delete(this.local_config[dataset].bucket, 'target_size');
-        this.$set(this.local_config[dataset].bucket, 'target_area', {
-          _target_: 'builtins.eval',
-          _args_: ['512*512']
+    handleInitData(newInfo) {
+      if (isEmpty(newInfo.data)) return;
+      forEach(newInfo.data, (datasetValue, datasetKey) => {
+        // bucket init
+        this.handlerBucketTargetChange(newInfo, datasetKey, datasetValue.bucket._target_);
+        forEach(datasetValue.source, (dataSourceValue, dataSourceKey) => {
+          // image transforms init
+          const imageTransforms = dataSourceValue.image_transforms;
+          if (
+            !imageTransforms ||
+            !imageTransforms.transforms ||
+            imageTransforms.transforms.length === 0
+          ) {
+            this.$set(dataSourceValue, 'image_transforms', default_image_transforms);
+          }
+          // transforms of image transforms init
+          const transformsOfImage = imageTransforms.transforms;
+          forEach(transformsOfImage, (transformValue, transformIndex) => {
+            this.handlerChangeImgTransforms(
+              newInfo,
+              datasetKey,
+              dataSourceKey,
+              transformIndex,
+              transformValue._target_
+            );
+          });
+          // tag transforms init
+          const tagTransforms = dataSourceValue.tag_transforms;
+          if (
+            !tagTransforms ||
+            !tagTransforms.transforms ||
+            tagTransforms.transforms.length === 0
+          ) {
+            this.$set(dataSourceValue, 'tagTransforms', default_tag_transforms);
+          }
+          // transforms of tag transforms init
+          const transformsOfTag = dataSourceValue.tag_transforms.transforms;
+          forEach(transformsOfTag, (transformValue, transformIndex) => {
+            this.handlerChangeTagTransforms(
+              newInfo,
+              datasetKey,
+              dataSourceKey,
+              transformIndex,
+              transformValue._target_
+            );
+          });
         });
-        this.$set(this.local_config[dataset].bucket, 'num_bucket', 1);
+      });
+    },
+
+    handlerBucketTargetChange(config, dataset, e) {
+      const bucket = config.data[dataset].bucket;
+      if (e === 'hcpdiff.data.bucket.RatioBucket.from_files') {
+        if (bucket.target_size) this.$delete(bucket, 'target_size');
+        if (!bucket.target_area) this.$set(bucket, 'target_area', cloneDeep(default_target_area));
+        if (!bucket.num_bucket) this.$set(bucket, 'num_bucket', 1);
       } else if (e === 'hcpdiff.data.bucket.FixedBucket') {
-        this.$delete(this.local_config[dataset].bucket, 'target_area');
-        this.$delete(this.local_config[dataset].bucket, 'num_bucket');
-        this.$set(this.local_config[dataset].bucket, 'target_size', [512, 512]);
+        if (bucket.target_area) this.$delete(bucket, 'target_area');
+        if (bucket.num_bucket) this.$delete(bucket, 'num_bucket');
+        if (!bucket.target_size) this.$set(bucket, 'target_size', cloneDeep(default_target_size));
       }
-      this.$forceUpdate();
+    },
+
+    handlerChangeImgTransforms(config, dataset, source, index, key) {
+      const transforms = config.data[dataset].source[source].image_transforms.transforms;
+      const transform = transforms[index];
+      if (transform._target_) {
+        const newConfig = cloneDeep(img_transformsConfigKeys[key]);
+        if (newConfig) {
+          const isKeysEqual = isEqual(Object.keys(newConfig), Object.keys(transform));
+          if (!isKeysEqual) this.$set(transforms, index, newConfig);
+        }
+      }
+    },
+
+    handlerChangeTagTransforms(config, dataset, source, index, key) {
+      const transform = config.data[dataset].source[source].tag_transforms.transforms[index];
+      if (key) {
+        switch (key) {
+          case 'hcpdiff.utils.caption_tools.TagShuffle':
+            if (transform.p) this.$delete(transform, 'p');
+            if (transform.word_names) this.$delete(transform, 'word_names');
+            break;
+          case 'hcpdiff.utils.caption_tools.TagDropout':
+            if (!transform.p) this.$set(transform, 'p', 0.1);
+            if (transform.word_names) this.$delete(transform, 'word_names');
+            break;
+          case 'hcpdiff.utils.caption_tools.TemplateFill':
+            if (!transform.word_names) this.$set(transform, 'word_names', {});
+            if (transform.p) this.$delete(transform, 'p');
+            break;
+        }
+      }
     },
     handlerPreDataset() {
       if (this.datasetList.length <= 0) return;
@@ -553,7 +626,7 @@ export default {
       this.$refs.dataCarouselRef.next();
     },
     dataSourceList(dataset) {
-      const data = this.local_config[dataset].source;
+      const data = this.config.data[dataset].source;
       const keys = Object.keys(data);
       return keys.map((key) => {
         return {
@@ -563,92 +636,72 @@ export default {
       });
     },
     dataSourceName(dataset) {
-      const length = this.dataSourceList(dataset).length;
-      return `data_source${length + 1}`;
+      const controlnetKeys = filter(Object.keys(this.config.data[dataset].source), (key) =>
+        dataSourceRegExp.test(key)
+      );
+      const nums = map(controlnetKeys, (key) => Number(key.replace(data_source_key, '')));
+      const num = nums.length === 0 ? 1 : max(nums) + 1;
+      return `${data_source_key}${num}`;
     },
     addDateset() {
-      console.log(1, this.local_config, this.datasetList.length);
-      if (!this.local_config) {
-        this.local_config = {};
+      console.log(1, this.config.data, this.datasetList.length);
+      if (!this.config.data) {
+        this.config.data = {};
       }
-      console.log(2, this.local_config, this.datasetList.length);
-      this.$set(
-        this.local_config,
-        this.getDatasetName,
-        JSON.parse(JSON.stringify(default_train_data.data.dataset1))
-      );
-      console.log(3, this.local_config, this.datasetList.length);
-      this.$forceUpdate();
+      console.log(2, this.config.data, this.datasetList.length);
+      this.$set(this.config.data, this.getDatasetName, cloneDeep(default_train_data.data.dataset1));
+      console.log(3, this.config.data, this.datasetList.length);
     },
     deleteDataset(dataset) {
-      this.$delete(this.local_config, dataset);
-      const length = Object.keys(this.local_config).length;
+      this.$delete(this.config.data, dataset);
+      const length = Object.keys(this.config.data).length;
       if (length === 0) {
-        this.local_config = null;
-        this.isOpenDatasetCollapse = false;
+        this.config.data = null;
       }
       if (this.datasetIndex > length - 1) {
         this.datasetIndex = length - 1;
       }
-      this.$forceUpdate();
-    },
-    handlerChangeImgTransforms(dataset, source, index, key) {
-      const newConfig = JSON.parse(JSON.stringify(img_transformsConfigKeys[key]));
-      this.$set(
-        this.local_config[dataset].source[source].image_transforms.transforms,
-        index,
-        newConfig
-      );
-      this.$forceUpdate();
     },
     addTagTransforms(dataset, source) {
-      if (!this.local_config[dataset].source[source].tag_transforms.transforms) {
-        this.$set(this.local_config[dataset].source[source].tag_transforms, 'transforms', []);
+      if (!this.config.data[dataset].source[source].tag_transforms.transforms) {
+        this.$set(this.config.data[dataset].source[source].tag_transforms, 'transforms', []);
       }
-      this.local_config[dataset].source[source].tag_transforms.transforms.push(
-        JSON.parse(
-          JSON.stringify(tag_transformsConfigKeys['hcpdiff.utils.caption_tools.TagShuffle'])
-        )
+      this.config.data[dataset].source[source].tag_transforms.transforms.push(
+        cloneDeep(tag_transformsConfigKeys['hcpdiff.utils.caption_tools.TagShuffle'])
       );
-      this.$forceUpdate();
     },
     deleteTagTransforms(dataset, source, index) {
-      this.local_config[dataset].source[source].tag_transforms.transforms.splice(index, 1);
-      if (this.local_config[dataset].source[source].tag_transforms.transforms.length === 0) {
-        this.$set(this.local_config[dataset].source[source].tag_transforms, 'transforms', null);
+      this.config.data[dataset].source[source].tag_transforms.transforms.splice(index, 1);
+      if (this.config.data[dataset].source[source].tag_transforms.transforms.length === 0) {
+        this.$set(this.config.data[dataset].source[source].tag_transforms, 'transforms', null);
       }
-      this.$forceUpdate();
     },
     addImgTransforms(dataset, source) {
-      if (!this.local_config[dataset].source[source].image_transforms.transforms) {
-        this.$set(this.local_config[dataset].source[source].image_transforms, 'transforms', []);
+      if (!this.config.data[dataset].source[source].image_transforms.transforms) {
+        this.$set(this.config.data[dataset].source[source].image_transforms, 'transforms', []);
       }
-      this.local_config[dataset].source[source].image_transforms.transforms.push(
-        JSON.parse(JSON.stringify(img_transformsConfigKeys['torchvision.transforms.Normalize']))
+      this.config.data[dataset].source[source].image_transforms.transforms.push(
+        cloneDeep(img_transformsConfigKeys['torchvision.transforms.Normalize'])
       );
-      this.$forceUpdate();
     },
     deleteImgTransforms(dataset, source, index) {
-      this.local_config[dataset].source[source].image_transforms.transforms.splice(index, 1);
-      if (this.local_config[dataset].source[source].image_transforms.transforms.length === 0) {
-        this.$set(this.local_config[dataset].source[source].image_transforms, 'transforms', null);
+      this.config.data[dataset].source[source].image_transforms.transforms.splice(index, 1);
+      if (this.config.data[dataset].source[source].image_transforms.transforms.length === 0) {
+        this.$set(this.config.data[dataset].source[source].image_transforms, 'transforms', null);
       }
-      this.$forceUpdate();
     },
     addDataSourceData_source(dataset) {
-      if (!this.local_config[dataset].source) {
-        this.$set(this.local_config[dataset], 'source', {});
+      if (!this.config.data[dataset].source) {
+        this.$set(this.config.data[dataset], 'source', {});
       }
       this.$set(
-        this.local_config[dataset].source,
+        this.config.data[dataset].source,
         this.dataSourceName(dataset),
-        JSON.parse(JSON.stringify(default_train_data.data.dataset1.source.data_source1))
+        cloneDeep(default_train_data.data.dataset1.source.data_source1)
       );
-      this.$forceUpdate();
     },
     deleteDataSourceData_source(dataset, source) {
-      this.$delete(this.local_config[dataset].source, source);
-      this.$forceUpdate();
+      this.$delete(this.config.data[dataset].source, source);
     },
     saveScrollPosition(index) {
       this.currentIndex = index;
@@ -664,77 +717,22 @@ export default {
         wrapperEl.scrollTop = this.scrollPosition;
       });
     },
-    handleImgTransformsChange(dataset, source, val) {
-      if (val) {
-        if (!this.local_config[dataset].source[source].image_transforms.transforms) {
-          this.local_config[dataset].source[source].image_transforms.transforms = [
-            JSON.parse(JSON.stringify(img_transformsConfigKeys['torchvision.transforms.Normalize']))
-          ];
-        }
-      } else {
-        this.local_config[dataset].source[source].image_transforms.transforms = null;
-      }
-    },
-    handlerChangeTagTransforms(dataset, source, index, key) {
-      switch (key) {
-        case 'hcpdiff.utils.caption_tools.TagShuffle':
-          this.$delete(
-            this.local_config[dataset].source[source].tag_transforms.transforms[index],
-            'p'
-          );
-          this.$delete(
-            this.local_config[dataset].source[source].tag_transforms.transforms[index],
-            'word_names'
-          );
-          break;
-        case 'hcpdiff.utils.caption_tools.TagDropout':
-          this.$set(
-            this.local_config[dataset].source[source].tag_transforms.transforms[index],
-            'p',
-            0.1
-          );
-          this.$delete(
-            this.local_config[dataset].source[source].tag_transforms.transforms[index],
-            'word_names'
-          );
-          break;
-        case 'hcpdiff.utils.caption_tools.TemplateFill':
-          this.$set(
-            this.local_config[dataset].source[source].tag_transforms.transforms[index],
-            'word_names',
-            {}
-          );
-          this.$delete(
-            this.local_config[dataset].source[source].tag_transforms.transforms[index],
-            'p'
-          );
-          break;
-      }
-      this.$forceUpdate();
-    },
     addImage_transformsTransforms(dataset, source) {
-      this.local_config[dataset].source[source].image_transforms.transforms.push(
-        JSON.parse(
-          JSON.stringify(
-            default_train_data.data[dataset].source.data_source1.image_transforms.transforms[0]
-          )
+      this.config.data[dataset].source[source].image_transforms.transforms.push(
+        cloneDeep(
+          default_train_data.data[dataset].source.data_source1.image_transforms.transforms[0]
         )
       );
     },
     deleteImage_transformsTransforms(dataset, source, index) {
-      this.local_config[dataset].source[source].image_transforms.transforms.splice(index, 1);
+      this.config.data[dataset].source[source].image_transforms.transforms.splice(index, 1);
     },
     confirmChangeWordName(dataset, source, index, value) {
       this.$set(
-        this.local_config[dataset].source[source].tag_transforms.transforms[index],
+        this.config.data[dataset].source[source].tag_transforms.transforms[index],
         'word_names',
         value
       );
-      this.$forceUpdate();
-    },
-    confirmYamlEdit(value) {
-      this.$set(this.local_config, this.datasetList[this.currentIndex], value);
-      this.$forceUpdate();
     }
   }
 };

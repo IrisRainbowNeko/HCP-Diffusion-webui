@@ -3,10 +3,10 @@
     title="Condition Config"
     showSwitch
     v-model="isOpenConditionConfig"
-    @onSwitch="handleSwitchMergeConfig"
+    @onSwitch="(e) => $emit('open', e)"
     showEditYaml
     :config="config.condition"
-    @confirm="onConfirm"
+    @confirm="(value) => $set(config, 'condition', value)"
   >
     <HBlock>
       <div class="config-row" v-if="config.condition">
@@ -39,10 +39,10 @@
   </h-collapse>
 </template>
 <script>
-import { default_data, type_options } from '@/constants/index';
+import { default_generate_data, type_options } from '@/constants/index';
 import { storeToRefs } from 'pinia';
-import useConfigStore from '@/store/configStore';
-import { cloneDeep, assign } from 'lodash-es';
+import useGenerateStore from '@/store/generateStore';
+import { cloneDeep } from 'lodash-es';
 export default {
   name: 'ConditionConfig',
   model: {
@@ -60,35 +60,24 @@ export default {
       type_options,
       isOpenConditionConfig: false,
       // 备份 params.condition
-      cacheConfig: cloneDeep(default_data.condition)
+      cacheConfig: cloneDeep(default_generate_data.condition)
     };
   },
   setup() {
-    const configStore = useConfigStore();
-    const { generate } = storeToRefs(configStore);
-    return { configStore, config: generate };
+    const generateStore = useGenerateStore();
+    const { generate } = storeToRefs(generateStore);
+    return { generateStore, config: generate };
   },
   watch: {
-    value: {
-      handler: function (val) {
-        if (val) {
-          this.configStore.updateGenerateByPath('condition', this.cacheConfig);
-        } else {
-          // 备份
-          this.cacheConfig = cloneDeep(this.config.condition || default_data.condition);
-          this.configStore.updateGenerateByPath('condition', null);
-        }
-        this.isOpenConditionConfig = val;
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    onConfirm(value) {
-      assign(this.config.condition, value);
-    },
-    handleSwitchMergeConfig(val) {
-      this.$emit('open', val);
+    value(val) {
+      if (val) {
+        this.$set(this.config, 'condition', this.cacheConfig);
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(this.config.condition || default_generate_data.condition);
+        this.$set(this.config, 'condition', null);
+      }
+      this.isOpenConditionConfig = val;
     }
   }
 };

@@ -7,7 +7,7 @@
           <el-input
             type="textarea"
             placeholder="Prompt"
-            v-model="configStore.generate.prompt"
+            v-model="config.prompt"
             maxlength="1500"
             show-word-limit
             autofocus
@@ -16,7 +16,7 @@
           <el-input
             type="textarea"
             placeholder="Negative prompt"
-            v-model="configStore.generate.neg_prompt"
+            v-model="config.neg_prompt"
             maxlength="1500"
             show-word-limit
             :autosize="{ minRows: 6, maxRows: 6 }"
@@ -46,14 +46,14 @@
             </div>
           </div>
           <div class="config-row">
-            <el-checkbox v-model="configStore.generate.save.save_cfg">save_cfg</el-checkbox>
+            <el-checkbox v-model="config.save.save_cfg">save_cfg</el-checkbox>
           </div>
           <div class="config-row">
             <HConfigSelect
               tooltip="generate.save.image_type"
               label="image_type"
               :options="image_typ_options"
-              v-model="configStore.generate.save.image_type"
+              v-model="config.save.image_type"
               style="font-size: 13px"
             />
             <HConfigInputNumber
@@ -62,7 +62,7 @@
               :min="1"
               :max="100"
               :step="1"
-              v-model="configStore.generate.save.quality"
+              v-model="config.save.quality"
               style="font-size: 13px"
             />
           </div>
@@ -76,7 +76,7 @@
             <!-- 取样方法配置 -->
             <OtherConfig />
             <!-- infer_args -->
-            <InferArgsConfig />
+            <InferArgsConfig ref="inferArgsComponent" />
           </div>
         </div>
         <div class="config-item">
@@ -91,22 +91,13 @@
             <EXInputConfig v-model="isOpenEXInput" />
 
             <!-- new_components -->
-            <NewComponentsConfig
-              :pretrained_model_name_or_path_options="pretrained_model_name_or_path_options"
-            />
+            <NewComponentsConfig ref="newComponentComponent" />
           </div>
         </div>
         <div class="config-item">
           <div class="config-item-scroll-wrap">
             <!-- merge -->
-            <MergeConfig
-              v-model="isOpenMergeConfig"
-              ref="mergeConfig"
-              :merge_group_lora_path="merge_group_lora_path"
-              :merge_group_part_path="merge_group_part_path"
-              :merge_group_plugin_controlnet1_path="merge_group_plugin_controlnet1_path"
-              @refresh="handleRefresh"
-            />
+            <MergeConfig v-model="isOpenMergeConfig" ref="mergeComponent" />
           </div>
         </div>
       </div>
@@ -114,7 +105,7 @@
   </div>
 </template>
 <script>
-import { default_data, image_typ_options, STATUS_TYPE } from '@/constants/index';
+import { default_generate_data, image_typ_options, STATUS_TYPE } from '@/constants/index';
 import {
   generateAction,
   getGenerateProgress,
@@ -129,12 +120,12 @@ import OffloadConfig from './components/offloadConfig.vue';
 import InferArgsConfig from './components/inferArgsConfig.vue';
 import NewComponentsConfig from './components/newComponentsConfig.vue';
 import MergeConfig from './components/mergeConfig.vue';
-import { getGenerateDir } from '@/api/file';
-import { handleOptions, validateParams } from '@/utils/index';
-import { merge, cloneDeep } from 'lodash-es';
+import { validateParams } from '@/utils/index';
+import { merge, cloneDeep, isNil, isEmpty } from 'lodash-es';
 import { storeToRefs } from 'pinia';
+import useCommonStore from '@/store/commonStore';
 import useSnStore from '@/store/snStore';
-import useConfigStore from '@/store/configStore';
+import useGenerateStore from '@/store/generateStore';
 const STATUS = {
   LOADING: 'loading',
   SUCCESS: 'success'
@@ -166,10 +157,6 @@ export default {
       status: STATUS.SUCCESS,
       STATUS,
       image_typ_options,
-      merge_group_lora_path: [],
-      merge_group_part_path: [],
-      merge_group_plugin_controlnet1_path: [],
-      pretrained_model_name_or_path_options: [],
       imgs: [],
       progress: 0,
       timer: null,
@@ -180,36 +167,36 @@ export default {
     };
   },
   setup() {
+    const commonStore = useCommonStore();
     const snStore = useSnStore();
-    const configStore = useConfigStore();
-    const { generate } = storeToRefs(configStore);
+    const generateStore = useGenerateStore();
+    const { generate } = storeToRefs(generateStore);
     // 任意更新储存到localstorage
-    watch(generate, (state) => configStore.storageGenerate(state), { deep: true });
-    return { snStore, configStore };
+    watch(generate, (state) => generateStore.storageGenerate(state), { deep: true });
+    return { commonStore, snStore, generateStore, config: generate };
   },
   watch: {
     pretrained_model: {
       handler: function (val) {
-        this.configStore.generate.pretrained_model = val;
+        this.config.pretrained_model = val;
       },
       immediate: true
     }
   },
   mounted() {
-    if (!this.configStore.storedGenerate) {
-      this.initDefaultData();
-    } else {
-      this.initDefaultView(this.configStore.storedGenerate);
-    }
+    // if (!this.generateStore.storedGenerate) {
+    this.initDefaultData();
+    // } else {
+    // this.initDefaultView(this.generateStore.storedGenerate);
+    // }
   },
   methods: {
     async handleGenerate() {
       if (!this.validate()) return;
       this.status = 'loading';
       this.imgs = [];
-      const info = this.handlerInfo();
       const result = await generateAction({
-        info: { ...info, pretrained_model: this.pretrained_model }
+        info: { ...this.config, pretrained_model: this.pretrained_model }
       }).catch((err) => {
         this.$message.error(err || 'generate failed');
         this.status = STATUS.SUCCESS;
@@ -221,7 +208,7 @@ export default {
     },
     // 中断
     async handleInterrupt() {
-      const result = await stopGenerate(this.snStore.generate_sn).catch(() => {
+      const result = await stopGenerate(this.snStore.generateSn).catch(() => {
         this.$message.error('interrupt failure');
       });
       if (!result) return;
@@ -238,7 +225,7 @@ export default {
     },
     // 轮询获取进度
     async getProgress() {
-      const result = await getGenerateProgress(this.snStore.generate_sn).catch(() => {
+      const result = await getGenerateProgress(this.snStore.generateSn).catch(() => {
         this.$message.error('fetch generate progress failed');
       });
       if (!result) return;
@@ -258,34 +245,31 @@ export default {
       }
       this.$emit('onMessage', status);
     },
-    // 重新获取options
-    async handleRefresh(field) {
-      const result = await getGenerateDir({ path: field }).catch(() => {
-        this.$message.error(`fetch setting ${field} failed`);
-      });
-      if (!result) return;
-      const { files = [] } = result;
-      this[field] = handleOptions(files);
-    },
 
     async initDefaultData() {
-      const result = await getGenerateConfig(this.snStore.generate_sn).catch(() => {
+      const result = await getGenerateConfig(this.snStore.generateSn).catch(() => {
         this.$message.error('fetch setting failed');
       });
       if (!result) return;
+
       const {
-        info,
-        is_pending,
-        progress,
-        images = [],
+        pretrained_mode = [],
+        server_yaml_file = [],
         merge_group_lora_path = [],
         merge_group_part_path = [],
         merge_group_plugin_controlnet1_path = [],
-        pretrained_mode = [],
-        server_yaml_file = [],
         pretrained_model_name_or_path = []
       } = result;
 
+      this.generateStore.generate_server_yaml_file = server_yaml_file;
+      this.generateStore.merge_group_lora_path = merge_group_lora_path;
+      this.generateStore.merge_group_part_path = merge_group_part_path;
+      this.generateStore.merge_group_plugin_controlnet1_path = merge_group_plugin_controlnet1_path;
+      this.generateStore.pretrained_model_name_or_path = pretrained_model_name_or_path;
+      this.commonStore.pretrained_model = pretrained_mode;
+
+      const { sn, info, is_pending, progress, images = [] } = result;
+      this.snStore.setGenerateSnSn(sn);
       if (images.length) {
         this.imgs = images;
       }
@@ -294,90 +278,36 @@ export default {
         this.progress = progress;
         this.getProgress();
       }
-      this.merge_group_lora_path = handleOptions(merge_group_lora_path);
-      this.merge_group_part_path = handleOptions(merge_group_part_path);
-      this.merge_group_plugin_controlnet1_path = handleOptions(merge_group_plugin_controlnet1_path);
-      this.pretrained_model_name_or_path_options = handleOptions(pretrained_model_name_or_path);
-      const { pretrained_model } = info || {};
-      this.$emit('getPretrainedMode', {
-        options: handleOptions(pretrained_mode),
-        pretrained_model,
-        server_yaml_file,
-        files: 'generate_server_yaml_file_options',
-        valueFiles: 'generate_yaml_template_sn'
-      });
 
-      const newInfo = merge(cloneDeep(default_data), info);
-
+      const newInfo = merge(cloneDeep(default_generate_data), info);
       // 保留模型
-      newInfo.pretrained_model = this.configStore.generate.pretrained_model;
+      newInfo.pretrained_model = this.config.pretrained_model;
+
+      this.$refs.inferArgsComponent.initDefaultData(newInfo);
+      this.$refs.newComponentComponent.initDefaultData(newInfo);
+      this.$refs.mergeComponent.initDefaultData(newInfo);
 
       this.initDefaultView(newInfo);
     },
 
     initDefaultView(info) {
       // 控制开关
-      this.isOpenConditionConfig = !!info.condition;
-      this.isOpenEXInput = !!info.ex_input;
-      this.isOpenMergeConfig = !!info.merge;
-      this.isOpenOffload = !!info.offload;
+      const { condition, ex_input, merge, offload } = info;
+      this.isOpenConditionConfig = !isNil(condition) && !isEmpty(condition);
+      this.isOpenEXInput = !isNil(ex_input) && !isEmpty(ex_input);
+      this.isOpenMergeConfig = !isNil(merge) && !isEmpty(merge);
+      this.isOpenOffload = !isNil(offload) && !isEmpty(offload);
       // 先打开折叠再更新数据，否则将不会渲染页面。
       this.$nextTick(() => {
         // 触发全局相应
-        this.configStore.generate = { ...info };
+        this.config = { ...info };
       });
     },
 
-    handlerInfo() {
-      const params = cloneDeep(this.configStore.generate);
-      const { isOpenMergeConfig } = this;
-      const { infer_args, new_components, merge } = params;
-      if (!isOpenMergeConfig) {
-        params.merge = null;
-      }
-      if (infer_args && [null, undefined, ''].includes(infer_args.strength)) {
-        delete params.infer_args.strength;
-      }
-      if (new_components) {
-        if ('vae' in new_components && [null, undefined, ''].includes(new_components.vae)) {
-          delete params.new_components.vae;
-        }
-        // 支持不同参数的scheduler
-        if (
-          'lower_order_final' in new_components.scheduler &&
-          [null, undefined, ''].includes(new_components.scheduler.lower_order_final)
-        ) {
-          delete params.new_components.scheduler.lower_order_final;
-        }
-        if (
-          'algorithm_type' in new_components.scheduler &&
-          [null, undefined, ''].includes(new_components.scheduler.algorithm_type)
-        ) {
-          delete params.new_components.scheduler.algorithm_type;
-        }
-        if (
-          'use_karras_sigmas' in new_components.scheduler &&
-          [null, undefined, ''].includes(new_components.scheduler.use_karras_sigmas)
-        ) {
-          delete params.new_components.scheduler.use_karras_sigmas;
-        }
-      }
-
-      if (merge) {
-        Object.keys(merge).forEach((key) => {
-          // 判断plugin是否为空数组
-          if (merge[key] && merge[key].plugin && !merge[key].plugin.length) {
-            merge[key].plugin = null;
-          }
-        });
-      }
-
-      return params;
-    },
     // 校验参数
     validate() {
       const self = this;
-      const params = cloneDeep(this.configStore.generate);
+      const params = cloneDeep(this.config);
       const requiredField = {
         'condition.image': {
           // 可自定义

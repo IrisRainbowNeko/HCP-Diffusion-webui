@@ -5,13 +5,13 @@
     tooltip="train.lora_unetTip"
     :showAdd="isOpen"
     v-model="isOpen"
-    @onSwitch="handleLoraUnetCollapseChange"
-    @add="addLora_unet"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.lora_unet"
+    @onSwitch="(e) => $emit('open', e)"
+    @add="addLora_unet"
+    @confirm="(value) => (config.lora_unet = value)"
   >
-    <div class="block-style-item" v-for="(item, index) in local_config || []" :key="index">
+    <div class="block-style-item" v-for="(item, index) in config.lora_unet || []" :key="index">
       <HBlock label=" " :h-index="2" show-icon @onDelete="deleteLora_unet(index)">
         <div class="config-row">
           <HConfigInputNumber
@@ -75,59 +75,61 @@
   </h-collapse>
 </template>
 <script>
-import { lora_unet_default_value } from '@/constants/index';
+import { storeToRefs } from 'pinia';
+import { cloneDeep } from 'lodash-es';
+import useTrainStore from '@/store/trainStore';
+import { default_train_data, lora_unet_default_value } from '@/constants/index';
 export default {
   name: 'LoraUnetConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
-    },
-    isOpenLoraUnetCollapse: {
+    value: {
       type: Boolean,
       default: false
     }
   },
   data() {
     return {
-      local_config: this.params.lora_unet,
-      isOpen: this.isOpenLoraUnetCollapse
+      isOpen: false,
+      cacheConfig: cloneDeep(default_train_data.lora_unet)
     };
   },
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
+  },
   watch: {
-    isOpen(val) {
-      this.$emit('onSwitch', val);
-    },
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
+    value(val) {
+      if (val) {
+        this.$set(this.config, 'lora_unet', this.cacheConfig);
+        if (!this.config.lora_unet || this.config.lora_unet.length == 0) {
+          this.addLora_unet();
+        }
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(this.config.lora_unet || default_train_data.lora_unet);
+        this.$set(this.config, 'lora_unet', null);
+      }
+      this.isOpen = val;
     }
   },
   methods: {
-    handleLoraUnetCollapseChange(val) {
-      if (val && !this.local_config) {
-        this.addLora_unet();
-      }
-    },
     addLora_unet() {
-      if (!this.local_config) {
-        this.local_config = [];
+      if (!this.config.lora_unet) {
+        this.config.lora_unet = [];
       }
-      this.local_config.push(JSON.parse(JSON.stringify(lora_unet_default_value)));
-      this.$forceUpdate();
+      this.config.lora_unet.push(cloneDeep(lora_unet_default_value));
     },
     deleteLora_unet(index) {
-      this.local_config.splice(index, 1);
-      if (this.local_config.length === 0) {
-        this.local_config = null;
+      this.config.lora_unet.splice(index, 1);
+      if (this.config.lora_unet.length === 0) {
+        this.config.lora_unet = null;
         this.isOpen = false;
       }
-    },
-    updateData() {
-      this.$emit('updateData', this.local_config);
     }
   }
 };

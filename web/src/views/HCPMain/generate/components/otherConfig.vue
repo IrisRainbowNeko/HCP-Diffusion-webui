@@ -4,7 +4,7 @@
     ref="collapseRef"
     showEditYaml
     :config="config"
-    @confirm="onConfirm"
+    @confirm="(value) => Object.assign(this.generate, value)"
   >
     <h-block>
       <div class="config-row">
@@ -67,8 +67,8 @@
 <script>
 import { dtype_options } from '@/constants/index';
 import { storeToRefs } from 'pinia';
-import useConfigStore from '@/store/configStore';
-import { pick, assign } from 'lodash-es';
+import useGenerateStore from '@/store/generateStore';
+import { pick } from 'lodash-es';
 const keys = ['out_dir', 'emb_dir', 'N_repeats', 'clip_skip', 'bs', 'num', 'seed', 'dtype'];
 export default {
   name: 'OtherConfig',
@@ -78,9 +78,9 @@ export default {
     };
   },
   setup() {
-    const configStore = useConfigStore();
-    const { generate } = storeToRefs(configStore);
-    return { configStore, generate };
+    const generateStore = useGenerateStore();
+    const { generate } = storeToRefs(generateStore);
+    return { generateStore, generate };
   },
   computed: {
     config() {
@@ -90,11 +90,6 @@ export default {
   mounted() {
     if (!this.generate.seed) {
       this.generate.seed = 1;
-    }
-  },
-  methods: {
-    onConfirm(value) {
-      assign(this.generate, value);
     }
   }
 };

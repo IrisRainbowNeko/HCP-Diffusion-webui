@@ -4,7 +4,7 @@
     ref="collapseRef"
     showEditYaml
     :config="config.infer_args"
-    @confirm="onConfirm"
+    @confirm="(value) => $set(config, 'infer_args', value)"
   >
     <HBlock>
       <div class="config-row">
@@ -53,23 +53,22 @@
           :min="0"
           :max="1"
           :step="0.01"
-          v-model="config.strength"
+          v-model="config.infer_args.strength"
         />
       </div>
     </HBlock>
   </h-collapse>
 </template>
 <script>
-import { default_data } from '@/constants/index';
+import { default_generate_data } from '@/constants/index';
 import { storeToRefs } from 'pinia';
-import useConfigStore from '@/store/configStore';
-import { cloneDeep, assign } from 'lodash-es';
+import useGenerateStore from '@/store/generateStore';
 export default {
   name: 'InferArgsConfig',
   setup() {
-    const configStore = useConfigStore();
-    const { generate } = storeToRefs(configStore);
-    return { configStore, config: generate };
+    const generateStore = useGenerateStore();
+    const { generate } = storeToRefs(generateStore);
+    return { generateStore, config: generate };
   },
   computed: {
     isi2i() {
@@ -78,20 +77,25 @@ export default {
   },
   watch: {
     'config.condition.type': {
-      handler: function (val) {
-        if (val !== 'i2i') {
-          this.config.infer_args.strength = null;
-        } else {
-          this.config.infer_args.strength = cloneDeep(default_data.infer_args.strength);
-        }
+      handler: function () {
+        this.handleStrength(this.config);
       },
       deep: true,
       immediate: true
     }
   },
   methods: {
-    onConfirm(value) {
-      assign(this.config.infer_args, value);
+    initDefaultData(newInfo) {
+      this.handleStrength(newInfo);
+    },
+    handleStrength(info) {
+      const infer_args = info.infer_args;
+      if (info.condition && info.condition.type === 'i2i') {
+        if (!infer_args.strength)
+          this.$set(infer_args, 'strength', default_generate_data.infer_args.strength);
+      } else {
+        if (infer_args.strength) this.$delete(infer_args, 'strength');
+      }
     }
   }
 };

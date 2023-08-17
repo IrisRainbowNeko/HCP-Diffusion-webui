@@ -5,11 +5,11 @@
     tooltip="train.plugin_unetTip"
     :showAdd="isOpen"
     v-model="isOpen"
-    @onSwitch="handlePluginUnetCollapseChange"
-    @add="addPluginUnet"
     showEditYaml
-    :config="local_config"
-    @confirm="(value) => (local_config = value)"
+    :config="config.plugin_unet"
+    @onSwitch="(e) => $emit('open', e)"
+    @add="addPluginUnet"
+    @confirm="(value) => (config.plugin_unet = value)"
   >
     <HBlock
       :h-index="2"
@@ -23,7 +23,7 @@
       @onDelete="deletePluginUnet(plugin)"
     >
       <div class="config-row">
-        <el-checkbox v-model="local_config[plugin]._partial_">_partial_</el-checkbox>
+        <el-checkbox v-model="config.plugin_unet[plugin]._partial_">_partial_</el-checkbox>
       </div>
       <div class="config-row">
         <HConfigInput
@@ -31,20 +31,20 @@
           disabled
           label="_target_"
           tooltip="train.plugin_unet.controlnet._target_"
-          v-model="local_config[plugin]._target_"
+          v-model="config.plugin_unet[plugin]._target_"
         />
         <HConfigInputNumber
           class="row-style"
           label="lr"
           tooltip="train.plugin_unet.controlnet.lr"
-          v-model="local_config[plugin].lr"
+          v-model="config.plugin_unet[plugin].lr"
         />
       </div>
       <div class="config-row">
         <HConfigTagSelect
           class="row-style"
           label="from_layers"
-          v-model="local_config[plugin].from_layers"
+          v-model="config.plugin_unet[plugin].from_layers"
           tooltip="train.plugin_unet.controlnet.from_layers"
           :options="['pre_hook:', 'pre_hook:conv_in']"
         />
@@ -54,7 +54,7 @@
           class="row-style"
           label="to_layers"
           tooltip="train.plugin_unet.controlnet.to_layers"
-          v-model="local_config[plugin].to_layers"
+          v-model="config.plugin_unet[plugin].to_layers"
           :options="[
             'down_blocks.0',
             'down_blocks.1',
@@ -69,78 +69,85 @@
   </h-collapse>
 </template>
 <script>
+import { storeToRefs } from 'pinia';
+import { cloneDeep, filter, map, max } from 'lodash-es';
+import useTrainStore from '@/store/trainStore';
 import { default_train_data } from '@/constants/index';
+const controlnet_key = 'controlnet';
+const controlnetRegExp = new RegExp(`${controlnet_key}\\d+`);
 export default {
   name: 'TokenizerPtConfig',
+  model: {
+    prop: 'value',
+    event: 'open'
+  },
   props: {
-    params: {
-      type: Object,
-      default: () => {}
-    },
-    isOpenPluginUnetCollapse: {
+    value: {
       type: Boolean,
       default: false
     }
   },
   data() {
     return {
-      local_config: this.params.plugin_unet,
-      isOpen: this.isOpenPluginUnetCollapse
+      isOpen: false,
+      cacheConfig: cloneDeep(default_train_data.plugin_unet)
     };
   },
+  setup() {
+    const trainStore = useTrainStore();
+    const { train } = storeToRefs(trainStore);
+    return { trainStore, config: train };
+  },
   watch: {
-    isOpen(val) {
-      this.$emit('onSwitch', val);
-    },
-    local_config: {
-      handler(val) {
-        this.$emit('updateData', val);
-      },
-      deep: true,
-      immediate: true
+    value(val) {
+      if (val) {
+        this.$set(this.config, 'plugin_unet', this.cacheConfig);
+        if (!this.config.plugin_unet || this.config.plugin_unet.length == 0) {
+          this.addPluginUnet();
+        }
+      } else {
+        // 备份
+        this.cacheConfig = cloneDeep(this.config.plugin_unet || default_train_data.plugin_unet);
+        this.$set(this.config, 'plugin_unet', null);
+      }
+      this.isOpen = val;
     }
   },
   computed: {
     pluginUnetList() {
-      const data = this.local_config;
+      const data = this.config.plugin_unet;
       const keys = Object.keys(data || {});
       return keys;
     },
     pluginUnetName({ pluginUnetList }) {
-      const length = pluginUnetList.length;
-      return `controlnet${length + 1}`;
+      const controlnetKeys = filter(pluginUnetList, (key) => controlnetRegExp.test(key));
+      const nums = map(controlnetKeys, (key) => Number(key.replace(controlnet_key, '')));
+      const num = nums.length === 0 ? 1 : max(nums) + 1;
+      return `${controlnet_key}${num}`;
     }
   },
   methods: {
-    handlePluginUnetCollapseChange(val) {
-      if (val && !this.local_config) {
-        this.addPluginUnet();
-      }
-    },
     addPluginUnet() {
-      if (!this.local_config) {
-        this.local_config = {};
+      if (!this.config.plugin_unet) {
+        this.config.plugin_unet = {};
       }
       this.$set(
-        this.local_config,
+        this.config.plugin_unet,
         this.pluginUnetName,
-        JSON.parse(JSON.stringify(default_train_data.plugin_unet.controlnet1))
+        cloneDeep(default_train_data.plugin_unet.controlnet1)
       );
     },
     deletePluginUnet(pluginUnetName) {
-      this.$delete(this.local_config, pluginUnetName);
-      if (Object.keys(this.local_config).length === 0) {
-        this.local_config = null;
+      this.$delete(this.config.plugin_unet, pluginUnetName);
+      if (Object.keys(this.config.plugin_unet).length === 0) {
+        this.config.plugin_unet = null;
         this.isOpen = false;
       }
     },
     editPluginUnetKey({ oldKeyName, newKeyName }) {
-      const oldData = JSON.parse(JSON.stringify(this.local_config[oldKeyName]));
-      this.$delete(this.local_config, oldKeyName);
-      this.$set(this.local_config, newKeyName, oldData);
-    },
-    updateData() {
-      this.$emit('updateData', this.local_config);
+      const oldData = cloneDeep(this.config.plugin_unet[oldKeyName]);
+      this.$delete(this.config.plugin_unet, oldKeyName);
+      this.$set(this.config.plugin_unet, newKeyName, oldData);
     }
   }
 };

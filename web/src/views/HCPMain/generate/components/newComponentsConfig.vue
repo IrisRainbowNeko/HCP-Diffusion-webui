@@ -1,5 +1,10 @@
 <template>
-  <h-collapse title="New_components Config" showEditYaml :config="config" @confirm="onConfirm">
+  <h-collapse
+    title="New_components Config"
+    showEditYaml
+    :config="config"
+    @confirm="(value) => $set(config, 'new_components', value)"
+  >
     <template v-if="keyLength">
       <!-- scheduler -->
       <HBlock
@@ -43,22 +48,22 @@
         </div>
         <div class="config-row">
           <el-checkbox
-            v-model="config.new_components.scheduler.use_karras_sigmas"
             v-if="has_karras"
+            v-model="config.new_components.scheduler.use_karras_sigmas"
           >
             use_karras_sigmas
           </el-checkbox>
 
-          <el-checkbox v-model="config.new_components.scheduler.lower_order_final" v-if="is_dpm">
+          <el-checkbox v-if="is_dpm" v-model="config.new_components.scheduler.lower_order_final">
             lower_order_final
           </el-checkbox>
         </div>
         <HConfigSelect
+          v-if="is_dpm"
           label="algorithm_type"
           tooltip="generate.new_components.scheduler.algorithm_type"
           :options="dpm_type_options"
           v-model="config.new_components.scheduler.algorithm_type"
-          v-if="is_dpm"
         />
       </HBlock>
       <!-- vae -->
@@ -92,14 +97,15 @@
 </template>
 <script>
 import {
-  default_data,
+  default_generate_data,
   scheduler_options,
   dpm_type_options,
+  dmp_schedulers,
   karras_schedulers
 } from '@/constants/index';
 import { storeToRefs } from 'pinia';
-import useConfigStore from '@/store/configStore';
-import { cloneDeep, assign, merge } from 'lodash-es';
+import useGenerateStore from '@/store/generateStore';
+import { cloneDeep, isNil } from 'lodash-es';
 export default {
   name: 'NewComponentsConfig',
   props: {
@@ -109,9 +115,9 @@ export default {
     }
   },
   setup() {
-    const configStore = useConfigStore();
-    const { generate } = storeToRefs(configStore);
-    return { configStore, config: generate };
+    const generateStore = useGenerateStore();
+    const { generate } = storeToRefs(generateStore);
+    return { generateStore, config: generate };
   },
   data() {
     return {
@@ -121,8 +127,8 @@ export default {
       isOpenNewComponentsVaeConfig: true,
 
       // 备份 params.new_components
-      cacheConfig: cloneDeep(default_data.new_components),
-      initNewComponentsVae: cloneDeep(default_data.new_components.vae)
+      cacheConfig: cloneDeep(default_generate_data.new_components),
+      initNewComponentsVae: cloneDeep(default_generate_data.new_components.vae)
     };
   },
   computed: {
@@ -130,19 +136,10 @@ export default {
       return Object.keys(this.config.new_components).length;
     },
     has_karras() {
-      return (
-        'scheduler' in this.config.new_components &&
-        karras_schedulers.includes(this.config.new_components.scheduler._target_)
-      );
+      return this.hasKarras(this.config);
     },
     is_dpm() {
-      return (
-        'scheduler' in this.config.new_components &&
-        (this.config.new_components.scheduler._target_ ===
-          'diffusers.DPMSolverMultistepScheduler' ||
-          this.config.new_components.scheduler._target_ ===
-            'diffusers.DPMSolverSinglestepScheduler')
-      );
+      return this.isDpm(this.config);
     }
   },
   watch: {
@@ -151,7 +148,7 @@ export default {
       handler: function (val) {
         if (val) {
           this.config.new_components.vae = cloneDeep(
-            this.initNewComponentsVae || default_data.new_components.vae
+            this.initNewComponentsVae || default_generate_data.new_components.vae
           );
         } else {
           if (!this.config.new_components.vae) return;
@@ -162,47 +159,43 @@ export default {
       immediate: true
     },
     'config.new_components.scheduler._target_': {
-      handler: function (val) {
-        console.log(val);
-        if (
-          val === 'diffusers.DPMSolverMultistepScheduler' ||
-          val === 'diffusers.DPMSolverSinglestepScheduler'
-        ) {
-          this.config.new_components.scheduler.lower_order_final = true;
-        } else {
-          if ('lower_order_final' in this.config.new_components.scheduler) {
-            const scheduler = cloneDeep(this.config.new_components.scheduler);
-            delete scheduler.lower_order_final;
-            delete scheduler.algorithm_type;
-            this.config.new_components = {
-              ...this.config.new_components,
-              scheduler
-            };
-          }
-          if (!karras_schedulers.includes(this.config.new_components.scheduler._target_)) {
-            this.config.new_components.scheduler.use_karras_sigmas = null;
-          }
-        }
+      handler: function () {
+        this.handleScheduler(this.config);
       },
       immediate: true
     }
   },
-  created() {
-    // 备份 params.new_components.vae
-    this.initNewComponentsVae = cloneDeep(default_data.new_components.vae);
-  },
   methods: {
-    initConfig(info) {
-      this.config.new_components = merge(
-        this.config.new_components,
-        cloneDeep(info.new_components)
-      );
-      const keysLength = Object.keys(this.config.new_components || {}).length;
-      this.isOpenNewComponentsVaeConfig =
-        keysLength > 0 && Object.keys(this.config.new_components.vae || {}).length > 0;
+    initDefaultData(newInfo) {
+      this.handleScheduler(newInfo);
     },
-    onConfirm(value) {
-      assign(this.config.new_components, value);
+    hasKarras(info) {
+      return (
+        'scheduler' in info.new_components &&
+        karras_schedulers.includes(info.new_components.scheduler._target_)
+      );
+    },
+    isDpm(info) {
+      return (
+        'scheduler' in info.new_components &&
+        dmp_schedulers.includes(info.new_components.scheduler._target_)
+      );
+    },
+    handleScheduler(info) {
+      const scheduler = info.new_components.scheduler;
+      if (this.isDpm(info)) {
+        if (isNil(scheduler.lower_order_final)) this.$set(scheduler, 'lower_order_final', true);
+        if (isNil(scheduler.algorithm_type)) this.$set(scheduler, 'algorithm_type', '');
+      } else {
+        if (!isNil(scheduler.lower_order_final)) this.$delete(scheduler, 'lower_order_final');
+        if (!isNil(scheduler.algorithm_type)) this.$delete(scheduler, 'algorithm_type');
+      }
+
+      if (this.hasKarras(info)) {
+        if (isNil(scheduler.use_karras_sigmas)) this.$set(scheduler, 'use_karras_sigmas', false);
+      } else {
+        if (!isNil(scheduler.use_karras_sigmas)) this.$delete(scheduler, 'use_karras_sigmas');
+      }
     }
   }
 };
